@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "AI Chat - Next.js Community Starter",
-  description: "A modern AI chat application with multiple LLM support",
+  title: "Better Chat",
+  description: "Chatgpt but better.",
 }
 
 export default function RootLayout({

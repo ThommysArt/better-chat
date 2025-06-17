@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
+import { UserButton } from "@clerk/nextjs"
 
 interface Chat {
   _id: Id<"chats">
@@ -165,6 +166,11 @@ export function ChatSidebar({ chats, currentChatId, onNewChat }: ChatSidebarProp
 
       <SidebarFooter className="p-4">
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <UserButton />
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Button variant="ghost" className="w-full gap-2 justify-start">
