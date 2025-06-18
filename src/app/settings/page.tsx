@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,8 +11,9 @@ import { ThemeSwitcher } from "@/components/theme-switcher"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { UserProfile } from "@clerk/nextjs"
 import { useRouter, useSearchParams } from "next/navigation"
+import { Skeleton } from "@/components/ui/skeleton"
 
-export default function SettingsPage() {
+function SettingsPage() {
   const router = useRouter()
   const [apiKey, setApiKey] = useState("")
   const [showApiKey, setShowApiKey] = useState(false)
@@ -159,5 +160,13 @@ export default function SettingsPage() {
         </TabsContent>
       </Tabs>
     </div>
+  )
+}
+
+export default function page () {
+  return (
+    <Suspense fallback={<Skeleton className="h-screen w-full"/>}>
+      <SettingsPage />
+    </Suspense>
   )
 }

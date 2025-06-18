@@ -1,5 +1,5 @@
 import { useChat as useVercelChat } from "@ai-sdk/react"
-import { useState, useCallback } from "react"
+import { useState, useCallback, useMemo } from "react"
 import { ModelProvider } from "@/lib/models"
 import { useUser } from "@clerk/nextjs"
 import { useMutation } from "convex/react"
@@ -26,6 +26,9 @@ export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, c
   const createMessage = useMutation(api.messages.create)
   const updateMessage = useMutation(api.messages.update)
 
+  // Get the current chatId from params or props
+  const currentChatId = params.chatId || chatId
+
   const {
     messages,
     input,
@@ -36,7 +39,7 @@ export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, c
   } = useVercelChat({
     api: "/api/chat",
     body: {
-      chatId,
+      chatId: currentChatId,
       userId: user?.id,
       modelId: selectedModelId,
       useSearch,
@@ -67,37 +70,53 @@ export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, c
       if (!input.trim()) return
 
       if (isSignedIn && user) {
-        let currentChatId = params.chatId || chatId
+        let chatIdToUse = currentChatId
 
         // If no chat is selected, create a new one with generated title
-        if (!currentChatId) {
+        if (!chatIdToUse) {
           const title = await generateChatTitle(input)
-          currentChatId = await createChat({
+          chatIdToUse = await createChat({
             userId: user.id,
             title,
             modelId: selectedModelId,
           })
-          router.push(`/chat/${currentChatId}`)
+          router.push(`/chat/${chatIdToUse}`)
         }
 
         // Add user message
         await createMessage({
-          chatId: currentChatId,
+          chatId: chatIdToUse,
           userId: user.id,
           role: "user",
           content: input,
           attachments: attachments.map((f) => f.name),
         })
 
-        // Submit to Vercel AI SDK
-        handleVercelSubmit(e)
+        // Submit to Vercel AI SDK with the current chatId
+        const formData = new FormData()
+        formData.append("messages", JSON.stringify([{ role: "user", content: input }]))
+        formData.append("chatId", chatIdToUse)
+        formData.append("userId", user.id)
+        formData.append("modelId", selectedModelId)
+        formData.append("useSearch", useSearch.toString())
+        formData.append("useThinking", useThinking.toString())
+
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          body: formData,
+        })
+
+        if (!response.ok) {
+          throw new Error("Failed to send message")
+        }
+
         setAttachments([])
       } else {
         // For non-authenticated users, just use Vercel AI SDK
         handleVercelSubmit(e)
       }
     },
-    [input, isSignedIn, chatId, params.chatId, user, attachments, createMessage, createChat, handleVercelSubmit, selectedModelId, router]
+    [input, isSignedIn, currentChatId, user, attachments, createMessage, createChat, selectedModelId, router, useSearch, useThinking]
   )
 
   const handleFileSelect = useCallback((files: File[]) => {
@@ -135,5 +154,6 @@ export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, c
       handleInputChange(event)
     },
     setAttachments,
+    currentChatId,
   }
 } 

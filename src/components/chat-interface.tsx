@@ -54,6 +54,7 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
     clearAttachments,
     setInput,
     setAttachments,
+    currentChatId,
   } = useChat({ chatId })
 
   const scrollToBottom = () => {
@@ -66,14 +67,14 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
 
   // Handle branching from a message
   const handleBranch = async (messageId: string) => {
-    if (!isSignedIn || !chatId) return
+    if (!isSignedIn || !currentChatId) return
 
     try {
       const newChatId = await createChatFromExisting({
         userId: user!.id,
         title: `Branch from ${new Date().toLocaleString()}`,
         modelId: selectedModelId || "google/gemini-2.0-flash",
-        sourceChatId: chatId,
+        sourceChatId: currentChatId,
         upToMessageId: messageId as Id<"messages">,
       })
 
@@ -87,12 +88,12 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
 
   // Handle editing a user message
   const handleEdit = async (message: any) => {
-    if (!isSignedIn || !chatId) return
+    if (!isSignedIn || !currentChatId) return
 
     try {
       // Delete all messages after this one
       await deleteAfter({
-        chatId: chatId as Id<"chats">,
+        chatId: currentChatId,
         messageId: message._id as Id<"messages">,
       })
 
@@ -124,12 +125,12 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
 
   // Handle re-running a message
   const handleRerun = async (messageId: string) => {
-    if (!isSignedIn || !chatId) return
+    if (!isSignedIn || !currentChatId) return
 
     try {
       // Delete all messages after this one
       await deleteAfter({
-        chatId: chatId as Id<"chats">,
+        chatId: currentChatId,
         messageId: messageId as Id<"messages">,
       })
 
@@ -153,8 +154,24 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
         setUseThinking(messageToRerun.metadata.thinkingUsed || false)
       }
 
-      // Submit the form
-      handleSubmit(new Event("submit") as any)
+      // Submit the form with the current chatId
+      const formData = new FormData()
+      formData.append("messages", JSON.stringify([{ role: "user", content: messageToRerun.content }]))
+      formData.append("chatId", currentChatId)
+      formData.append("userId", user!.id)
+      formData.append("modelId", messageToRerun.modelId || "google/gemini-2.0-flash")
+      formData.append("useSearch", (messageToRerun.metadata?.searchUsed || false).toString())
+      formData.append("useThinking", (messageToRerun.metadata?.thinkingUsed || false).toString())
+
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to re-run message")
+      }
+
       toast.success("Message re-running")
     } catch (error) {
       console.error("Error re-running message:", error)
