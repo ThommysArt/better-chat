@@ -1,57 +1,75 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useRef, useCallback, useEffect } from "react"
+import { useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { Paperclip, ArrowUp, Search, Brain } from "lucide-react"
+import { useChat } from "@/hooks/use-chat"
+import { ModelSelector } from "@/components/model-selector"
+import { AttachmentsPreview } from "@/components/attachments-preview"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu"
-import { Paperclip, ArrowUp, ChevronDown, Search, Brain } from "lucide-react"
-import { getAllModels, getModelById } from "@/lib/models"
-import { motion, AnimatePresence } from "framer-motion"
-import { useUser } from "@clerk/nextjs"
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from "@/components/ui/form"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+
+const chatFormSchema = z.object({
+  message: z.string().min(1, "Message cannot be empty"),
+  modelId: z.string(),
+  useSearch: z.boolean(),
+  useThinking: z.boolean(),
+})
+
+type ChatFormValues = z.infer<typeof chatFormSchema>
 
 interface ChatInputProps {
-  onSendMessage: (
-    message: string,
-    options: {
-      modelId: string
-      useSearch: boolean
-      useThinking: boolean
-      attachments?: File[]
-    },
-  ) => void
   disabled?: boolean
   placeholder?: string
   autoFocus?: boolean
 }
 
 export function ChatInput({
-  onSendMessage,
   disabled = false,
   placeholder = "How can I help?",
   autoFocus = false,
 }: ChatInputProps) {
-  const [message, setMessage] = useState("")
-  const [selectedModelId, setSelectedModelId] = useState("google/gemini-2.0-flash-exp")
-  const [useSearch, setUseSearch] = useState(false)
-  const [useThinking, setUseThinking] = useState(false)
-  const [attachments, setAttachments] = useState<File[]>([])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const { isSignedIn } = useUser()
 
-  const selectedModel = getModelById(selectedModelId)
-  const models = getAllModels()
+  const {
+    input,
+    handleInputChange,
+    handleSubmit,
+    isLoading,
+    selectedModelId,
+    setSelectedModelId,
+    useSearch,
+    setUseSearch,
+    useThinking,
+    setUseThinking,
+    attachments,
+    handleFileSelect,
+    removeAttachment,
+    clearAttachments,
+    isSignedIn = false,
+  } = useChat()
 
-  // Filter models based on authentication status
-  const availableModels = isSignedIn ? models : models.filter((model) => model.id === "google/gemini-2.0-flash-exp")
+  const form = useForm<ChatFormValues>({
+    resolver: zodResolver(chatFormSchema),
+    defaultValues: {
+      message: "",
+      modelId: selectedModelId,
+      useSearch: useSearch,
+      useThinking: useThinking,
+    },
+  })
 
   useEffect(() => {
     if (autoFocus && textareaRef.current) {
@@ -59,37 +77,16 @@ export function ChatInput({
     }
   }, [autoFocus])
 
-  const handleSubmit = useCallback(() => {
-    if (!message.trim() || disabled) return
-
-    onSendMessage(message, {
-      modelId: selectedModelId,
-      useSearch,
-      useThinking,
-      attachments: attachments.length > 0 ? attachments : undefined,
-    })
-
-    setMessage("")
-    setAttachments([])
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto"
-    }
-  }, [message, selectedModelId, useSearch, useThinking, attachments, onSendMessage, disabled])
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
-      handleSubmit()
+      form.handleSubmit(onSubmit)()
     }
   }
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
-    setAttachments((prev) => [...prev, ...files])
-  }
-
-  const removeAttachment = (index: number) => {
-    setAttachments((prev) => prev.filter((_, i) => i !== index))
+    handleFileSelect(files)
   }
 
   const adjustTextareaHeight = () => {
@@ -100,157 +97,137 @@ export function ChatInput({
     }
   }
 
+  const onSubmit = (data: ChatFormValues) => {
+    setSelectedModelId(data.modelId)
+    setUseSearch(data.useSearch)
+    setUseThinking(data.useThinking)
+    handleSubmit(new Event("submit") as any)
+  }
+
   return (
     <div className="w-full max-w-4xl mx-auto p-4">
       <div className="relative">
-        {/* Attachments Preview */}
-        <AnimatePresence>
-          {attachments.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="mb-4 flex flex-wrap gap-2"
-            >
-              {attachments.map((file, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="flex items-center gap-2 bg-muted px-3 py-2 text-sm"
-                >
-                  <Paperclip className="h-4 w-4 shrink-0" />
-                  <span className="truncate max-w-32">{file.name}</span>
+        <AttachmentsPreview attachments={attachments} onRemove={removeAttachment} />
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="relative bg-muted/60 border border-muted/90 ring-8 ring-muted/30 shadow-lg overflow-hidden">
+              <div className="p-0">
+                <FormField
+                  control={form.control}
+                  name="message"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Textarea
+                          {...field}
+                          ref={textareaRef}
+                          onChange={(e) => {
+                            field.onChange(e)
+                            handleInputChange(e)
+                            adjustTextareaHeight()
+                          }}
+                          onKeyDown={handleKeyDown}
+                          placeholder={placeholder}
+                          disabled={disabled || isLoading}
+                          className="min-h-[60px] max-h-[200px] resize-none border-none p-4 pb-2 focus-visible:ring-0 focus-visible:ring-offset-0 text-base"
+                          rows={2}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-2 p-4 pt-2 border-t border-border/50">
+                <div className="flex items-center gap-3">
                   <Button
                     variant="ghost"
-                    size="sm"
-                    className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
-                    onClick={() => removeAttachment(index)}
+                    size="icon"
+                    className="shrink-0 h-9 w-9 rounded-lg hover:bg-muted"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={disabled || isLoading}
+                    type="button"
                   >
-                    ×
+                    <Paperclip className="h-4 w-4" />
+                    <span className="sr-only">Attach file</span>
                   </Button>
-                </motion.div>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
 
-        {/* Main Input Container */}
-        <div className="relative bg-muted/60 border border-muted/90 ring-8 ring-muted/30 shadow-lg overflow-hidden">
-          {/* Text Input - Top Section */}
-          <div className="p-0">
-            <Textarea
-              ref={textareaRef}
-              value={message}
-              onChange={(e) => {
-                setMessage(e.target.value)
-                adjustTextareaHeight()
-              }}
-              onKeyDown={handleKeyDown}
-              placeholder={placeholder}
-              disabled={disabled}
-              className="min-h-[60px] max-h-[200px] resize-none border-none p-4 pb-2 focus-visible:ring-0 focus-visible:ring-offset-0 text-base"
-              rows={2}
-            />
-          </div>
+                  <FormField
+                    control={form.control}
+                    name="useSearch"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center gap-2">
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            disabled={disabled || isLoading}
+                          />
+                        </FormControl>
+                        <Label>DeepSearch</Label>
+                      </FormItem>
+                    )}
+                  />
 
-          {/* Controls - Bottom Section */}
-          <div className="flex items-center justify-between gap-2 p-4 pt-2 border-t border-border/50">
-            <div className="flex items-center gap-3">
-              {/* Attachment Button */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="shrink-0 h-9 w-9 rounded-lg hover:bg-muted"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={disabled}
-              >
-                <Paperclip className="h-4 w-4" />
-                <span className="sr-only">Attach file</span>
-              </Button>
+                  <FormField
+                    control={form.control}
+                    name="useThinking"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center gap-2">
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            disabled={disabled || isLoading}
+                          />
+                        </FormControl>
+                        <Label>Thinking</Label>
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-              {/* Search Toggle */}
-              <div className="flex items-center gap-2">
-                <Button variant={useSearch ? "default" : "outline"} onClick={() => setUseSearch(!useSearch)}>
-                  <Search className="h-4 w-4" />
-                  <span>DeepSearch</span>
-                </Button>
-              </div>
+                <div className="flex items-center gap-2">
+                  <FormField
+                    control={form.control}
+                    name="modelId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <ModelSelector
+                            selectedModelId={field.value}
+                            onModelSelect={field.onChange}
+                            disabled={disabled || isLoading}
+                            isSignedIn={isSignedIn}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
 
-              {/* Thinking Toggle */}
-              <div className="flex items-center gap-2">
-                <Button variant={useThinking ? "default" : "outline"} onClick={() => setUseThinking(!useThinking)}>
-                  <Brain className="h-4 w-4" />
-                  <span>Thinking</span>
-                </Button>
+                  <Button
+                    type="submit"
+                    disabled={disabled || isLoading || !form.watch("message").trim()}
+                    size="icon"
+                    className="shrink-0 h-9 w-9 rounded-lg"
+                  >
+                    <ArrowUp className="h-4 w-4" />
+                    <span className="sr-only">Send message</span>
+                  </Button>
+                </div>
               </div>
             </div>
+          </form>
+        </Form>
 
-            <div className="flex items-center gap-2">
-              {/* Model Selector */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="shrink-0 rounded-lg gap-2 font-medium" disabled={disabled}>
-                    {selectedModel?.name || "Select Model"}
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64">
-                  {Object.entries(
-                    availableModels.reduce(
-                      (acc, model) => {
-                        if (!acc[model.company]) acc[model.company] = []
-                        acc[model.company].push(model)
-                        return acc
-                      },
-                      {} as Record<string, typeof availableModels>,
-                    ),
-                  ).map(([company, companyModels]) => (
-                    <div key={company}>
-                      <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">{company}</div>
-                      {companyModels.map((model) => (
-                        <DropdownMenuItem
-                          key={model.id}
-                          onClick={() => setSelectedModelId(model.id)}
-                          className="flex flex-col items-start gap-1 p-3"
-                        >
-                          <div className="flex items-center justify-between w-full">
-                            <span className="font-medium">{model.name}</span>
-                            {selectedModelId === model.id && <div className="h-2 w-2 bg-primary rounded-full" />}
-                          </div>
-                          <span className="text-xs text-muted-foreground line-clamp-2">{model.description}</span>
-                        </DropdownMenuItem>
-                      ))}
-                      <DropdownMenuSeparator />
-                    </div>
-                  ))}
-                  {!isSignedIn && (
-                    <div className="p-2 text-xs text-muted-foreground border-t">Sign in to access more models</div>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* Send Button */}
-              <Button
-                onClick={handleSubmit}
-                disabled={disabled || !message.trim()}
-                size="icon"
-                className="shrink-0 h-9 w-9 rounded-lg"
-              >
-                <ArrowUp className="h-4 w-4" />
-                <span className="sr-only">Send message</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Hidden File Input */}
         <input
           ref={fileInputRef}
           type="file"
           multiple
           accept="image/*,.txt,.md,.json,.csv,.pdf"
-          onChange={handleFileSelect}
+          onChange={handleFileInputChange}
           className="hidden"
         />
       </div>

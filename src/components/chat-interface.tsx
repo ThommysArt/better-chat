@@ -13,9 +13,10 @@ import { Button } from "@/components/ui/button"
 import { Settings, Plus } from "lucide-react"
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { ThemeSwitcher } from "@/components/theme-switcher"
+import { useChat } from "@/hooks/use-chat"
 
 interface ChatInterfaceProps {
-  chatId?: string
+  chatId?: Id<"chats">
 }
 
 export function ChatInterface({ chatId }: ChatInterfaceProps) {
@@ -34,6 +35,23 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
 
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamingMessageId, setStreamingMessageId] = useState<Id<"messages"> | null>(null)
+
+  const {
+    input,
+    handleInputChange,
+    handleSubmit,
+    isLoading,
+    selectedModelId,
+    setSelectedModelId,
+    useSearch,
+    setUseSearch,
+    useThinking,
+    setUseThinking,
+    attachments,
+    handleFileSelect,
+    removeAttachment,
+    clearAttachments,
+  } = useChat({ chatId })
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -183,24 +201,21 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-full bg-background">
+      <div className="relative flex h-screen w-full bg-background">
         {/* Sidebar */}
         {isSignedIn && <ChatSidebar chats={chats || []} currentChatId={chatId} onNewChat={createNewChat} />}
 
+        {isSignedIn && <SidebarTrigger className="absolute top-4 left-4 z-20" />}
+
         {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col">
+        <div className="relative flex-1 flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-border">
-            <div className="flex items-center gap-3">
-              {isSignedIn && <SidebarTrigger />}
-              <h1 className="font-semibold">{currentChat?.title || (!chatId ? "New Chat" : "Chat")}</h1>
+          
+          <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4">
+            <div className="flex items-center gap-3"> 
             </div>
             <div className="flex items-center gap-2">
               <ThemeSwitcher />
-              <Button variant="outline" size="sm" onClick={createNewChat} className="gap-2" disabled={pathname === "/chat/new"}>
-                <Plus className="h-4 w-4" />
-                New Chat
-              </Button>
               <Button variant="ghost" size="icon" onClick={() => router.push("/settings?tab=system")}>
                 <Settings className="h-4 w-4" />
               </Button>
@@ -208,7 +223,7 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto pt-16">
             {!messages || messages.length === 0 ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center space-y-4">
@@ -233,7 +248,6 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
           {/* Input */}
           <div className="border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <ChatInput
-              onSendMessage={handleSendMessage}
               disabled={isStreaming}
               placeholder={!messages || messages.length === 0 ? "How can I help?" : "Continue the conversation..."}
               autoFocus={!chatId}

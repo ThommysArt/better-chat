@@ -1,49 +1,63 @@
-import { openai } from "@ai-sdk/openai"
-import { streamText } from "ai"
-import type { NextRequest } from "next/server"
+import { streamText } from 'ai'
+import { google } from '@ai-sdk/google'
+import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import { fetchMutation } from 'convex/nextjs'
+import { api } from '@/convex/_generated/api'
+import { NextResponse } from 'next/server'
+import type { Message } from 'ai'
 
-export const maxDuration = 30
-
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const { messages, modelId, useSearch, useThinking, apiKey } = await req.json()
+    const { messages, modelId, useSearch, useThinking, chatId, userId } = await req.json()
 
-    // Use user's API key if provided, otherwise use server key
-    const client = openai({
-      baseURL: "https://openrouter.ai/api/v1",
-      apiKey: apiKey || process.env.OPENROUTER_API_KEY,
+    if (!messages?.length) {
+      return NextResponse.json({ error: "Messages are required" }, { status: 400 })
+    }
+
+    // Create assistant message in Convex
+    const assistantMessageId = await fetchMutation(api.messages.create, {
+      chatId,
+      userId,
+      role: "assistant",
+      content: "",
+      modelId,
+      metadata: {
+        searchUsed: useSearch,
+        thinkingUsed: useThinking,
+      },
     })
 
-    // Map our model IDs to OpenRouter format
-    const modelMap: Record<string, string> = {
-      "google/gemini-2.0-flash-exp": "google/gemini-2.0-flash-exp",
-      "anthropic/claude-3.5-sonnet": "anthropic/claude-3.5-sonnet",
-      "openai/gpt-4o": "openai/gpt-4o",
-      "x-ai/grok-3": "x-ai/grok-beta",
-    }
-
-    const actualModelId = modelMap[modelId] || "google/gemini-2.0-flash-exp"
-
-    let systemPrompt = "You are a helpful AI assistant."
-
-    if (useThinking) {
-      systemPrompt += " Think step by step and show your reasoning process."
-    }
-
-    if (useSearch) {
-      systemPrompt += " You can search for current information when needed."
-    }
-
     const result = streamText({
-      model: client(actualModelId),
-      messages: [{ role: "system", content: systemPrompt }, ...messages],
-      temperature: 0.7,
-      maxTokens: 4000,
+      model: google('gemini-2.0-flash'),
+      messages: messages.map((m: Message) => ({
+        role: m.role,
+        content: m.content,
+      })),
+      providerOptions: {
+        google: {
+          responseModalities: ['TEXT'],
+        } satisfies GoogleGenerativeAIProviderOptions,
+      },
+      async onFinish({ response }) {
+        // Update the assistant message with the final content
+        const content = response.messages[0].content
+        const contentString = Array.isArray(content) 
+          ? content.map(part => part.type === 'text' ? part.text : '').join('')
+          : String(content)
+        
+        await fetchMutation(api.messages.update, {
+          messageId: assistantMessageId,
+          content: contentString,
+        })
+      },
     })
 
     return result.toDataStreamResponse()
   } catch (error) {
-    console.error("Chat API error:", error)
-    return new Response("Internal Server Error", { status: 500 })
+    console.error("Error in chat API:", error)
+    return NextResponse.json(
+      { error: "Failed to process chat request" },
+      { status: 500 }
+    )
   }
 }

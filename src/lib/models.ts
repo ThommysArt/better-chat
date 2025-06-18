@@ -16,6 +16,7 @@ export interface ModelProvider {
   }
   contextLength: number
   apiEndpoint?: string
+  provider: "openrouter" | "google"
 }
 
 export const MODEL_PROVIDERS: Record<string, ModelProvider[]> = {
@@ -34,6 +35,7 @@ export const MODEL_PROVIDERS: Record<string, ModelProvider[]> = {
       },
       pricing: { input: 3, output: 15 },
       contextLength: 200000,
+      provider: "openrouter",
     },
     {
       id: "openai/gpt-4o",
@@ -49,6 +51,7 @@ export const MODEL_PROVIDERS: Record<string, ModelProvider[]> = {
       },
       pricing: { input: 5, output: 15 },
       contextLength: 128000,
+      provider: "openrouter",
     },
     {
       id: "x-ai/grok-3",
@@ -64,9 +67,10 @@ export const MODEL_PROVIDERS: Record<string, ModelProvider[]> = {
       },
       pricing: { input: 2, output: 10 },
       contextLength: 131072,
+      provider: "openrouter",
     },
     {
-      id: "google/gemini-2.0-flash-exp",
+      id: "openrouter/gemini-2.0-flash",
       name: "Gemini 2.0 Flash",
       company: "Google",
       description: "Fast and efficient multimodal model",
@@ -79,8 +83,27 @@ export const MODEL_PROVIDERS: Record<string, ModelProvider[]> = {
       },
       pricing: { input: 0.075, output: 0.3 },
       contextLength: 1048576,
+      provider: "openrouter",
     },
   ],
+  google: [
+    {
+      id: "google/gemini-2.0-flash",
+      name: "Gemini 2.0 Flash",
+      company: "Google",
+      description: "Fast and efficient multimodal model",
+      features: {
+        thinking: false,
+        search: true,
+        imageGeneration: true,
+        vision: true,
+        streaming: true,
+      },
+      pricing: { input: 0.075, output: 0.3 },
+      contextLength: 1048576,
+      provider: "google",
+    },
+  ]
 }
 
 export const getAllModels = (): ModelProvider[] => {

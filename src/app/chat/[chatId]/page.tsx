@@ -1,11 +1,8 @@
 import { ChatInterface } from "@/components/chat-interface"
+import { Id } from "@/convex/_generated/dataModel"
 
-interface ChatPageProps {
-  params: {
-    chatId: string
-  }
-}
 
-export default function ChatPage({ params }: ChatPageProps) {
-  return <ChatInterface chatId={params.chatId} />
+export default async function ChatPage({ params }: { params: Promise<{ chatId: Id<"chats"> }> }) {
+  const chatId = (await params).chatId
+  return <ChatInterface chatId={chatId} />
 }

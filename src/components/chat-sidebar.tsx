@@ -18,8 +18,9 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
-import { UserButton } from "@clerk/nextjs"
 import { NavUser } from "./nav-user"
+import { usePathname } from "next/navigation"
+import { useRouter } from "next/navigation"
 
 interface Chat {
   _id: Id<"chats">
@@ -35,9 +36,12 @@ interface ChatSidebarProps {
 }
 
 export function ChatSidebar({ chats, currentChatId, onNewChat }: ChatSidebarProps) {
+  const router = useRouter()
+  const pathname = usePathname()
   const [searchQuery, setSearchQuery] = useState("")
   const [editingChatId, setEditingChatId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState("")
+
 
   const updateChatTitle = useMutation(api.chats.updateTitle)
   const deleteChat = useMutation(api.chats.remove)
@@ -72,7 +76,10 @@ export function ChatSidebar({ chats, currentChatId, onNewChat }: ChatSidebarProp
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <Button onClick={onNewChat} className="w-full gap-2 mb-4">
+        <div className="flex items-center justify-center mb-2">
+          <h1 className="text-xl font-semibold">Better Chat</h1>
+        </div>
+        <Button onClick={onNewChat} className="w-full gap-2 mb-4" disabled={pathname === "/chat/new"}>
           <Plus className="h-4 w-4" />
           New Chat
         </Button>
@@ -103,7 +110,8 @@ export function ChatSidebar({ chats, currentChatId, onNewChat }: ChatSidebarProp
                   <SidebarMenuButton
                     asChild
                     isActive={currentChatId === chat._id}
-                    className="group flex items-center gap-2 p-3 w-full"
+                    className="group flex items-center gap-2 p-5 w-full cursor-pointer"
+                    onClick={() => router.push(`/chat/${chat._id}`)}
                   >
                     <div className="flex items-center gap-2 w-full">
                       <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -123,8 +131,8 @@ export function ChatSidebar({ chats, currentChatId, onNewChat }: ChatSidebarProp
                           />
                         ) : (
                           <div>
-                            <p className="text-sm font-medium truncate">{chat.title}</p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs font-medium truncate">{chat.title}</p>
+                            <p className="text-[0.5rem] text-muted-foreground">
                               {new Date(chat.updatedAt).toLocaleDateString()}
                             </p>
                           </div>
