@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/form"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
+import { useParams } from "next/navigation"
+import { Id } from "@/convex/_generated/dataModel"
 
 const chatFormSchema = z.object({
   message: z.string().min(1, "Message cannot be empty"),
@@ -40,6 +42,7 @@ export function ChatInput({
   placeholder = "How can I help?",
   autoFocus = false,
 }: ChatInputProps) {
+  const chatId = useParams<{ chatId: Id<"chats"> | undefined }>().chatId
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -59,12 +62,12 @@ export function ChatInput({
     removeAttachment,
     clearAttachments,
     isSignedIn = false,
-  } = useChat()
+  } = useChat({ chatId })
 
   const form = useForm<ChatFormValues>({
     resolver: zodResolver(chatFormSchema),
     defaultValues: {
-      message: "",
+      message: input,
       modelId: selectedModelId,
       useSearch: useSearch,
       useThinking: useThinking,
@@ -98,6 +101,7 @@ export function ChatInput({
   }
 
   const onSubmit = (data: ChatFormValues) => {
+    form.reset()
     setSelectedModelId(data.modelId)
     setUseSearch(data.useSearch)
     setUseThinking(data.useThinking)
