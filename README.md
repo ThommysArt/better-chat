@@ -1,36 +1,34 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Better Chat
+
+A modern, extensible chat application with advanced features and a beautiful UI.
+
+## Features
+
+- **Multiple LLM Access**: Seamlessly switch between different large language models (LLMs) including OpenAI, Anthropic, and more via OpenRouter integration.
+- **Resumable Streams**: Chat responses stream in real-time and can be resumed if interrupted.
+- **Attachment Support**: Send and preview file attachments directly in chat.
+- **Chat Branching**: Fork conversations at any point to explore alternate responses or scenarios.
+- **Reruns & Editing Messages**: Rerun previous prompts or edit messages to refine conversations.
+- **Bring Your Own Key**: Use your own OpenRouter API key for privacy and direct billing.
+- **Profile & System Settings**: Manage your profile, theme, and API keys in a dedicated settings panel.
+- **Modern UI/UX**: Responsive, accessible, and visually appealing interface.
+
+## Tech Stack
+
+- **Next.js 15**: App Router, React Server Components, and Suspense for fast, scalable rendering.
+- **Tailwind CSS**: Utility-first CSS for rapid UI development.
+- **shadcn/ui**: Beautiful, accessible UI components.
+- **Framer Motion**: Smooth, interactive animations.
+- **Convex**: Real-time backend for chat data and state management.
+- **Clerk**: Authentication and user management.
 
 ## Getting Started
 
-First, run the development server:
+1. Clone the repository
+2. Install dependencies with `pnpm install`
+3. Set up environment variables as needed
+4. Run the development server with `pnpm dev`
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## License
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This project is licensed under the Apache License 2.0. See [LICENSE](./LICENSE) for details.
