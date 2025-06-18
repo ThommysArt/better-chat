@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useUser } from "@clerk/nextjs"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
@@ -21,6 +21,7 @@ interface ChatInterfaceProps {
 export function ChatInterface({ chatId }: ChatInterfaceProps) {
   const { user, isSignedIn } = useUser()
   const router = useRouter()
+  const pathname = usePathname()
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const createChat = useMutation(api.chats.create)
@@ -182,7 +183,7 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen bg-background">
+      <div className="flex h-screen w-full bg-background">
         {/* Sidebar */}
         {isSignedIn && <ChatSidebar chats={chats || []} currentChatId={chatId} onNewChat={createNewChat} />}
 
@@ -196,11 +197,11 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
             </div>
             <div className="flex items-center gap-2">
               <ThemeSwitcher />
-              <Button variant="outline" size="sm" onClick={createNewChat} className="gap-2">
+              <Button variant="outline" size="sm" onClick={createNewChat} className="gap-2" disabled={pathname === "/chat/new"}>
                 <Plus className="h-4 w-4" />
                 New Chat
               </Button>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" onClick={() => router.push("/settings?tab=system")}>
                 <Settings className="h-4 w-4" />
               </Button>
             </div>

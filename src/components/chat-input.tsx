@@ -12,10 +12,9 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import { Paperclip, ArrowUp, ChevronDown } from "lucide-react"
+import { Paperclip, ArrowUp, ChevronDown, Search, Brain } from "lucide-react"
 import { getAllModels, getModelById } from "@/lib/models"
 import { motion, AnimatePresence } from "framer-motion"
-import CustomSwitch from "@/components/custom-switch"
 import { useUser } from "@clerk/nextjs"
 
 interface ChatInputProps {
@@ -111,15 +110,16 @@ export function ChatInput({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="mb-2 flex flex-wrap gap-2"
+              className="mb-4 flex flex-wrap gap-2"
             >
               {attachments.map((file, index) => (
                 <motion.div
                   key={index}
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  className="flex items-center gap-2 bg-muted px-3 py-2 rounded-lg text-sm"
+                  className="flex items-center gap-2 bg-muted px-3 py-2 text-sm"
                 >
+                  <Paperclip className="h-4 w-4 shrink-0" />
                   <span className="truncate max-w-32">{file.name}</span>
                   <Button
                     variant="ghost"
@@ -136,9 +136,9 @@ export function ChatInput({
         </AnimatePresence>
 
         {/* Main Input Container */}
-        <div className="relative bg-background border border-border rounded-2xl shadow-lg overflow-hidden">
+        <div className="relative bg-muted/60 border border-muted/90 ring-8 ring-muted/30 shadow-lg overflow-hidden">
           {/* Text Input - Top Section */}
-          <div className="p-4 pb-2">
+          <div className="p-0">
             <Textarea
               ref={textareaRef}
               value={message}
@@ -149,7 +149,7 @@ export function ChatInput({
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
               disabled={disabled}
-              className="min-h-[60px] max-h-[200px] resize-none border-0 bg-transparent p-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-base"
+              className="min-h-[60px] max-h-[200px] resize-none border-none p-4 pb-2 focus-visible:ring-0 focus-visible:ring-offset-0 text-base"
               rows={2}
             />
           </div>
@@ -171,26 +171,18 @@ export function ChatInput({
 
               {/* Search Toggle */}
               <div className="flex items-center gap-2">
-                <CustomSwitch
-                  labelOn="ON"
-                  labelOff="OFF"
-                  value={useSearch}
-                  onValueChange={setUseSearch}
-                  className="scale-75"
-                />
-                <span className="text-sm font-medium">DeepSearch</span>
+                <Button variant={useSearch ? "default" : "outline"} onClick={() => setUseSearch(!useSearch)}>
+                  <Search className="h-4 w-4" />
+                  <span>DeepSearch</span>
+                </Button>
               </div>
 
               {/* Thinking Toggle */}
               <div className="flex items-center gap-2">
-                <CustomSwitch
-                  labelOn="ON"
-                  labelOff="OFF"
-                  value={useThinking}
-                  onValueChange={setUseThinking}
-                  className="scale-75"
-                />
-                <span className="text-sm font-medium">Think</span>
+                <Button variant={useThinking ? "default" : "outline"} onClick={() => setUseThinking(!useThinking)}>
+                  <Brain className="h-4 w-4" />
+                  <span>Thinking</span>
+                </Button>
               </div>
             </div>
 
