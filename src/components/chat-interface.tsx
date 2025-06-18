@@ -29,7 +29,6 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
   const createMessage = useMutation(api.messages.create)
   const updateMessage = useMutation(api.messages.update)
 
-  const chats = useQuery(api.chats.list, isSignedIn ? { userId: user!.id } : "skip")
   const currentChat = useQuery(api.chats.get, chatId ? { chatId: chatId as Id<"chats"> } : "skip")
   const messages = useQuery(api.messages.list, chatId ? { chatId: chatId as Id<"chats"> } : "skip")
 
@@ -61,20 +60,6 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
     scrollToBottom()
   }, [messages])
 
-  const createNewChat = async () => {
-    if (!isSignedIn) {
-      router.push("/chat/new")
-      return
-    }
-
-    const newChatId = await createChat({
-      userId: user!.id,
-      title: "New Chat",
-      modelId: "google/gemini-2.0-flash-exp",
-    })
-
-    router.push(`/chat/${newChatId}`)
-  }
 
   const handleSendMessage = async (
     content: string,
@@ -204,9 +189,13 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
     <SidebarProvider>
       <div className="relative flex h-screen w-full bg-background">
         {/* Sidebar */}
-        {isSignedIn && <ChatSidebar chats={chats || []} currentChatId={chatId} onNewChat={createNewChat} />}
+        <ChatSidebar 
+          currentChatId={chatId} 
+          onNewChat={() => router.push("/chat/new")} 
+          userId={user?.id || ""}
+        />
 
-        {isSignedIn && <SidebarTrigger className="absolute top-4 left-4 z-20" />}
+        <SidebarTrigger className="absolute top-4 left-4 z-20" />
 
         {/* Main Chat Area */}
         <div className="relative flex-1 flex flex-col">

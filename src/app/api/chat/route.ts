@@ -13,7 +13,6 @@ export async function POST(req: Request) {
     if (!messages?.length) {
       return NextResponse.json({ error: "Messages are required" }, { status: 400 })
     }
-
     // Create assistant message in Convex
     const assistantMessageId = await fetchMutation(api.messages.create, {
       chatId,

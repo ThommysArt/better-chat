@@ -1,5 +1,6 @@
 import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
+import { paginationOptsValidator } from "convex/server"
 
 export const create = mutation({
   args: {
@@ -27,6 +28,20 @@ export const list = query({
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .order("desc")
       .collect()
+  },
+})
+
+export const listPaginated = query({
+  args: { 
+    paginationOpts: paginationOptsValidator,
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("chats")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .order("desc")
+      .paginate(args.paginationOpts)
   },
 })
 

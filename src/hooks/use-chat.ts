@@ -5,7 +5,7 @@ import { useUser } from "@clerk/nextjs"
 import { useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
-import { useRouter } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 
 interface UseChatOptions {
   initialModelId?: string
@@ -16,6 +16,7 @@ interface UseChatOptions {
 export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, chatId }: UseChatOptions = {}) {
   const { isSignedIn = false, user } = useUser()
   const router = useRouter()
+  const params = useParams<{ chatId: Id<"chats">|undefined }>()
   const [selectedModelId, setSelectedModelId] = useState(initialModelId)
   const [useSearch, setUseSearch] = useState(false)
   const [useThinking, setUseThinking] = useState(false)
@@ -66,7 +67,7 @@ export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, c
       if (!input.trim()) return
 
       if (isSignedIn && user) {
-        let currentChatId = chatId
+        let currentChatId = params.chatId
 
         // If no chat is selected, create a new one with generated title
         if (!currentChatId) {
@@ -96,7 +97,7 @@ export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, c
         handleVercelSubmit(e)
       }
     },
-    [input, isSignedIn, chatId, user, attachments, createMessage, createChat, handleVercelSubmit, selectedModelId, router]
+    [input, isSignedIn, chatId, params.chatId, user, attachments, createMessage, createChat, handleVercelSubmit, selectedModelId, router]
   )
 
   const handleFileSelect = useCallback((files: File[]) => {

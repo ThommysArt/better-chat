@@ -42,6 +42,11 @@ export function ChatMessage({ message, isStreaming = false }: ChatMessageProps) 
     setTimeout(() => setCopied(false), 2000)
   }
 
+  const handleCopy = async (text: string) => {
+    await navigator.clipboard.writeText(text)
+    toast.success("Copied to clipboard")
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -76,7 +81,7 @@ export function ChatMessage({ message, isStreaming = false }: ChatMessageProps) 
                         style={oneDark}
                         language={match[1]}
                         PreTag="div"
-                        className="rounded-md !mt-2 !mb-2"
+                        className="!mt-2 !mb-2"
                         {...props}
                       >
                         {String(children).replace(/\n$/, "")}
@@ -85,7 +90,7 @@ export function ChatMessage({ message, isStreaming = false }: ChatMessageProps) 
                         variant="ghost"
                         size="sm"
                         className="absolute top-2 right-2 h-8 w-8 p-0"
-                        onClick={() => navigator.clipboard.writeText(String(children))}
+                        onClick={() => handleCopy(String(children))}
                       >
                         <Copy className="h-3 w-3" />
                       </Button>
