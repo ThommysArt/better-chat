@@ -13,7 +13,7 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
               {/* ChatGPT message (left) */}
               <div className="flex items-start">
                 <div className="flex-shrink-0">
-                  <ChatGPT className='text-white fill-white size-12' />
+                  <ChatGPT className='fill-black dark:fill-white size-12' />
                 </div>
                 <div className="ml-4 bg-muted px-4 py-2 rounded-lg max-w-xs shadow">
                   <span className="font-semibold text-primary">ChatGPT:</span>
@@ -37,7 +37,7 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
               {/* ChatGPT message (left) */}
               <div className="flex items-start">
                 <div className="flex-shrink-0">
-                  <ChatGPT className='text-white fill-white size-12' />
+                  <ChatGPT className='fill-black dark:fill-white size-12' />
                 </div>
                 <div className="ml-4 bg-muted px-4 py-2 rounded-lg max-w-xs shadow">
                   <span className="font-semibold text-primary">ChatGPT:</span>
@@ -61,7 +61,7 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
               {/* ChatGPT message (left) */}
               <div className="flex items-start">
                 <div className="flex-shrink-0">
-                  <ChatGPT className='text-white fill-white size-12' />
+                  <ChatGPT className='fill-black dark:fill-white size-12' />
                 </div>
                 <div className="ml-4 bg-muted px-4 py-2 rounded-lg max-w-xs shadow">
                   <span className="font-semibold text-primary">ChatGPT:</span>

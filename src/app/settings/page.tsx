@@ -6,13 +6,19 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Eye, EyeOff, Save, Trash2 } from "lucide-react"
-import { ThemeSelector } from "@/components/theme-selector"
+import { ArrowLeft, Eye, EyeOff, Save, Trash2 } from "lucide-react"
+import { ThemeSwitcher } from "@/components/theme-switcher"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { UserProfile } from "@clerk/nextjs"
+import { useRouter, useSearchParams } from "next/navigation"
 
 export default function SettingsPage() {
+  const router = useRouter()
   const [apiKey, setApiKey] = useState("")
   const [showApiKey, setShowApiKey] = useState(false)
   const [saved, setSaved] = useState(false)
+  const searchParams = useSearchParams()
+  const tab = searchParams.get("tab") as "profile" | "system" | undefined
 
   useEffect(() => {
     // Load saved API key
@@ -38,7 +44,13 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="container max-w-2xl mx-auto p-6 space-y-6">
+    <div className="relative container max-w-2xl mx-auto p-6 pt-20 space-y-6">
+      <div className="absolute top-4 left-0 right-0 px-6 flex items-center justify-start w-full">
+        <Button variant="outline" onClick={() => router.back()}>
+          <ArrowLeft className="h-4 w-4" />
+          Back to Chat
+        </Button>
+      </div>
       <div className="space-y-2">
         <h1 className="text-3xl font-bold">Settings</h1>
         <p className="text-muted-foreground">Manage your chat preferences and API keys.</p>
@@ -46,91 +58,106 @@ export default function SettingsPage() {
 
       <Separator />
 
-      {/* Theme Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Appearance</CardTitle>
-          <CardDescription>Customize the look and feel of your chat interface.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <Label>Theme</Label>
-              <p className="text-sm text-muted-foreground">Choose your preferred theme</p>
-            </div>
-            <ThemeSelector />
-          </div>
-        </CardContent>
-      </Card>
+      <Tabs defaultValue={tab || "profile"}>
+        <TabsList>
+          <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="system">System</TabsTrigger>
+        </TabsList>
+        <TabsContent value="profile">
+          <UserProfile />
+        </TabsContent>
 
-      {/* API Key Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Bring Your Own Key</CardTitle>
-          <CardDescription>
-            Use your own OpenRouter API key to access all models. Your key is stored locally and never sent to our
-            servers.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="api-key">OpenRouter API Key</Label>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Input
-                  id="api-key"
-                  type={showApiKey ? "text" : "password"}
-                  placeholder="sk-or-v1-..."
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  className="pr-10"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3"
-                  onClick={() => setShowApiKey(!showApiKey)}
-                >
-                  {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
+        <TabsContent value="system" className="space-y-6" >
+
+          {/* Theme Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Appearance</CardTitle>
+              <CardDescription>Customize the look and feel of your chat interface.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label>Theme</Label>
+                  <p className="text-sm text-muted-foreground">Choose your preferred theme</p>
+                </div>
+                <ThemeSwitcher />
               </div>
-              <Button onClick={saveApiKey} disabled={!apiKey.trim()} className="gap-2">
-                <Save className="h-4 w-4" />
-                {saved ? "Saved!" : "Save"}
-              </Button>
-              {apiKey && (
-                <Button variant="outline" onClick={removeApiKey} className="gap-2">
-                  <Trash2 className="h-4 w-4" />
-                  Remove
-                </Button>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Get your API key from{" "}
-              <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="underline">
-                OpenRouter
-              </a>
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
 
-      {/* Usage Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Usage & Billing</CardTitle>
-          <CardDescription>Information about your API usage and costs.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            When using your own API key, you'll be billed directly by OpenRouter based on your usage. Check your{" "}
-            <a href="https://openrouter.ai/activity" target="_blank" rel="noopener noreferrer" className="underline">
-              OpenRouter dashboard
-            </a>{" "}
-            for detailed usage statistics.
-          </p>
-        </CardContent>
-      </Card>
+        
+
+          {/* API Key Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Bring Your Own Key</CardTitle>
+              <CardDescription>
+                Use your own OpenRouter API key to access all models. Your key is stored locally and never sent to our
+                servers.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="api-key">OpenRouter API Key</Label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      id="api-key"
+                      type={showApiKey ? "text" : "password"}
+                      placeholder="sk-or-v1-..."
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      className="pr-10"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3"
+                      onClick={() => setShowApiKey(!showApiKey)}
+                    >
+                      {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  <Button onClick={saveApiKey} disabled={!apiKey.trim()} className="gap-2">
+                    <Save className="h-4 w-4" />
+                    {saved ? "Saved!" : "Save"}
+                  </Button>
+                  {apiKey && (
+                    <Button variant="outline" onClick={removeApiKey} className="gap-2">
+                      <Trash2 className="h-4 w-4" />
+                      Remove
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Get your API key from{" "}
+                  <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="underline">
+                    OpenRouter
+                  </a>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Usage Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Usage & Billing</CardTitle>
+              <CardDescription>Information about your API usage and costs.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                When using your own API key, you'll be billed directly by OpenRouter based on your usage. Check your{" "}
+                <a href="https://openrouter.ai/activity" target="_blank" rel="noopener noreferrer" className="underline">
+                  OpenRouter dashboard
+                </a>{" "}
+                for detailed usage statistics.
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

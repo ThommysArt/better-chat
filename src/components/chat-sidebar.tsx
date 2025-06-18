@@ -19,6 +19,7 @@ import { useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { UserButton } from "@clerk/nextjs"
+import { NavUser } from "./nav-user"
 
 interface Chat {
   _id: Id<"chats">
@@ -164,22 +165,8 @@ export function ChatSidebar({ chats, currentChatId, onNewChat }: ChatSidebarProp
         </SidebarMenu>
       </SidebarContent>
 
-      <SidebarFooter className="p-4">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <UserButton />
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <Button variant="ghost" className="w-full gap-2 justify-start">
-                <Settings className="h-4 w-4" />
-                Settings
-              </Button>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+      <SidebarFooter>
+        <NavUser />
       </SidebarFooter>
     </Sidebar>
   )
