@@ -46,35 +46,18 @@ export function ChatMessage({ message, isStreaming = false }: ChatMessageProps) 
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        "group flex gap-4 p-4 rounded-lg transition-colors",
-        message.role === "user" ? "bg-muted/50 ml-12" : "hover:bg-muted/30",
+        "group flex w-full max-w-4xl mx-auto",
+        message.role === "user" ? "justify-end" : "justify-start",
       )}
     >
-      {/* Avatar */}
-      <Avatar className="h-8 w-8 shrink-0">
-        <AvatarFallback className={cn(message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted")}>
-          {message.role === "user" ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
-        </AvatarFallback>
-      </Avatar>
 
-      <div className="flex-1 space-y-2">
+      <div className={cn(
+        "mr-4 bg-primary/30 text-primary-foreground px-4 py-2 rounded-lg max-w-xs shadow text-right",
+        message.role === "user" ? "bg-primary/50 " : "hover:bg-muted/30",
+        )}
+      >
         {/* Header */}
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span className="font-medium">{message.role === "user" ? "You" : model?.name || "Assistant"}</span>
-          {message.metadata?.searchUsed && (
-            <div className="flex items-center gap-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full text-xs">
-              <Search className="h-3 w-3" />
-              Search
-            </div>
-          )}
-          {message.metadata?.thinkingUsed && (
-            <div className="flex items-center gap-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 px-2 py-0.5 rounded-full text-xs">
-              <Lightbulb className="h-3 w-3" />
-              Thinking
-            </div>
-          )}
-          <span className="text-xs">{new Date(message.createdAt).toLocaleTimeString()}</span>
-        </div>
+        
 
         {/* Content */}
         <div className="prose prose-sm dark:prose-invert max-w-none">
@@ -116,6 +99,10 @@ export function ChatMessage({ message, isStreaming = false }: ChatMessageProps) 
               {message.content}
             </ReactMarkdown>
           )}
+
+          <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground text-right">
+            <span className="text-[0.6rem] text-right">{new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
+          </div>
 
           {isStreaming && (
             <motion.div

@@ -211,10 +211,10 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
         <div className="relative flex-1 flex flex-col">
           {/* Header */}
           
-          <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4">
-            <div className="flex items-center gap-3"> 
+          <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between">
+            <div className="flex items-center gap-3 p-4"> 
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center border backdrop-blur-sm">
               <ThemeSwitcher />
               <Button variant="ghost" size="icon" onClick={() => router.push("/settings?tab=system")}>
                 <Settings className="h-4 w-4" />
