@@ -67,7 +67,7 @@ export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, c
       if (!input.trim()) return
 
       if (isSignedIn && user) {
-        let currentChatId = params.chatId
+        let currentChatId = params.chatId || chatId
 
         // If no chat is selected, create a new one with generated title
         if (!currentChatId) {

@@ -60,28 +60,40 @@ export function ChatMessage({ message, isStreaming = false }: ChatMessageProps) 
 
       <div className={cn(
         "mr-4 bg-primary/30 text-primary-foreground px-4 py-2 rounded-lg max-w-3xl shadow",
-        message.role === "user" ? "bg-primary/50" : "bg-muted/30",
+        message.role === "user" ? "bg-primary/50" : "bg-muted/20",
         )}
       >
         {/* Header */}
         
 
         {/* Content */}
-        <div className="prose prose-sm dark:prose-invert max-w-none text-sm">
+        <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
           {message.role === "user" ? (
-            <p className="whitespace-pre-wrap">{message.content}</p>
+            <p className="whitespace-pre-wrap leading-6">{message.content}</p>
           ) : (
             <ReactMarkdown
               components={{
+                p: ({ children }) => <p className="leading-6 mb-4 last:mb-0">{children}</p>,
+                h1: ({ children }) => <h1 className="text-lg font-bold leading-7 mb-3">{children}</h1>,
+                h2: ({ children }) => <h2 className="text-base font-bold leading-6 mb-2">{children}</h2>,
+                h3: ({ children }) => <h3 className="text-sm font-bold leading-5 mb-2">{children}</h3>,
+                ul: ({ children }) => <ul className="list-disc list-inside leading-6 mb-4 space-y-1">{children}</ul>,
+                ol: ({ children }) => <ol className="list-decimal list-inside leading-6 mb-4 space-y-1">{children}</ol>,
+                li: ({ children }) => <li className="leading-6">{children}</li>,
+                blockquote: ({ children }) => (
+                  <blockquote className="border-l-4 border-muted-foreground/30 pl-4 italic leading-6 mb-4">
+                    {children}
+                  </blockquote>
+                ),
                 code({ node, className, children, ref, style, ...props }) {
                   const match = /language-(\w+)/.exec(className || "")
                   return match ? (
-                    <div className="relative">
+                    <div className="relative my-4">
                       <SyntaxHighlighter
                         style={oneDark}
                         language={match[1]}
                         PreTag="div"
-                        className="!mt-2 !mb-2"
+                        className="!mt-0 !mb-0"
                         {...props}
                       >
                         {String(children).replace(/\n$/, "")}
@@ -96,18 +108,36 @@ export function ChatMessage({ message, isStreaming = false }: ChatMessageProps) 
                       </Button>
                     </div>
                   ) : (
-                    <code className={className} {...props}>
+                    <code className={cn("bg-muted px-1 py-0.5 rounded text-xs font-mono", className)} {...props}>
                       {children}
                     </code>
                   )
                 },
+                pre: ({ children }) => <pre className="leading-6 mb-4">{children}</pre>,
+                table: ({ children }) => (
+                  <div className="overflow-x-auto mb-4">
+                    <table className="min-w-full border-collapse border border-muted-foreground/20">
+                      {children}
+                    </table>
+                  </div>
+                ),
+                th: ({ children }) => (
+                  <th className="border border-muted-foreground/20 px-3 py-2 text-left font-semibold leading-6">
+                    {children}
+                  </th>
+                ),
+                td: ({ children }) => (
+                  <td className="border border-muted-foreground/20 px-3 py-2 leading-6">
+                    {children}
+                  </td>
+                ),
               }}
             >
               {message.content}
             </ReactMarkdown>
           )}
 
-          <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground text-right">
+          <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground text-right mt-3">
             <span className="text-[0.6rem] text-right">{new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
           </div>
 
