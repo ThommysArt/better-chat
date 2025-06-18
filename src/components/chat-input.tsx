@@ -68,7 +68,7 @@ export function ChatInput({
     resolver: zodResolver(chatFormSchema),
     defaultValues: {
       message: input,
-      modelId: selectedModelId,
+      modelId: selectedModelId || "google/gemini-2.0-flash",
       useSearch: useSearch,
       useThinking: useThinking,
     },
@@ -138,7 +138,6 @@ export function ChatInput({
                           rows={2}
                         />
                       </FormControl>
-                      <FormMessage />
                     </FormItem>
                   )}
                 />

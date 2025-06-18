@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { usePathname, useRouter } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { useUser } from "@clerk/nextjs"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
@@ -22,7 +22,7 @@ interface ChatInterfaceProps {
 export function ChatInterface({ chatId }: ChatInterfaceProps) {
   const { user, isSignedIn } = useUser()
   const router = useRouter()
-  const pathname = usePathname()
+  const params = useParams<{ chatId: Id<"chats"> | undefined }>()
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const createChat = useMutation(api.chats.create)
@@ -91,7 +91,7 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
       return
     }
 
-    let currentChatId = chatId as Id<"chats">
+    let currentChatId = params.chatId || chatId
 
     // Create new chat if we don't have one
     if (!currentChatId) {
@@ -187,6 +187,7 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
     }
   }
 
+  // TODO: Handle guest chat 
   const handleGuestChat = async (
     content: string,
     options: {

@@ -13,7 +13,7 @@ interface UseChatOptions {
   chatId?: Id<"chats">
 }
 
-export function useChat({ initialModelId = "google/gemini-2.0-flash-exp", onError, chatId }: UseChatOptions = {}) {
+export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, chatId }: UseChatOptions = {}) {
   const { isSignedIn = false, user } = useUser()
   const router = useRouter()
   const [selectedModelId, setSelectedModelId] = useState(initialModelId)
@@ -35,26 +35,13 @@ export function useChat({ initialModelId = "google/gemini-2.0-flash-exp", onErro
   } = useVercelChat({
     api: "/api/chat",
     body: {
+      chatId,
+      userId: user?.id,
       modelId: selectedModelId,
       useSearch,
       useThinking,
     },
     onError,
-    onFinish: async (message) => {
-      if (isSignedIn && chatId && user) {
-        await createMessage({
-          chatId,
-          userId: user.id,
-          role: "assistant",
-          content: message.content,
-          modelId: selectedModelId,
-          metadata: {
-            searchUsed: useSearch,
-            thinkingUsed: useThinking,
-          },
-        })
-      }
-    },
   })
 
   const generateChatTitle = async (message: string) => {

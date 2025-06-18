@@ -10,6 +10,7 @@ import { getModelById } from "@/lib/models"
 import ReactMarkdown from "react-markdown"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism"
+import { toast } from "sonner"
 
 interface Message {
   _id: string
@@ -37,6 +38,7 @@ export function ChatMessage({ message, isStreaming = false }: ChatMessageProps) 
   const copyToClipboard = async () => {
     await navigator.clipboard.writeText(message.content)
     setCopied(true)
+    toast.success("Copied to clipboard")
     setTimeout(() => setCopied(false), 2000)
   }
 
@@ -46,21 +48,21 @@ export function ChatMessage({ message, isStreaming = false }: ChatMessageProps) 
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        "group flex w-full max-w-4xl mx-auto",
-        message.role === "user" ? "justify-end" : "justify-start",
+        "group flex flex-col w-full max-w-4xl mx-auto",
+        message.role === "user" ? "items-end" : "items-start",
       )}
     >
 
       <div className={cn(
-        "mr-4 bg-primary/30 text-primary-foreground px-4 py-2 rounded-lg max-w-xs shadow text-right",
-        message.role === "user" ? "bg-primary/50 " : "hover:bg-muted/30",
+        "mr-4 bg-primary/30 text-primary-foreground px-4 py-2 rounded-lg max-w-3xl shadow",
+        message.role === "user" ? "bg-primary/50" : "bg-muted/30",
         )}
       >
         {/* Header */}
         
 
         {/* Content */}
-        <div className="prose prose-sm dark:prose-invert max-w-none">
+        <div className="prose prose-sm dark:prose-invert max-w-none text-sm">
           {message.role === "user" ? (
             <p className="whitespace-pre-wrap">{message.content}</p>
           ) : (
@@ -123,17 +125,16 @@ export function ChatMessage({ message, isStreaming = false }: ChatMessageProps) 
             ))}
           </div>
         )}
-
-        {/* Actions */}
-        {message.role === "assistant" && !isStreaming && (
-          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button variant="ghost" size="sm" onClick={copyToClipboard} className="h-8 gap-2">
-              {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-              {copied ? "Copied" : "Copy"}
-            </Button>
-          </div>
-        )}
       </div>
+
+      {/* Actions */}
+      {message.role === "assistant" && !isStreaming && (
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={copyToClipboard} className="h-8 gap-2">
+            {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+          </Button>
+        </div>
+      )}
     </motion.div>
   )
 }
