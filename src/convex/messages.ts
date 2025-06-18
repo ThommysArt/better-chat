@@ -49,6 +49,13 @@ export const list = query({
   },
 })
 
+export const get = query({
+  args: { messageId: v.id("messages") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.messageId)
+  },
+})
+
 export const update = mutation({
   args: {
     messageId: v.id("messages"),
@@ -58,5 +65,42 @@ export const update = mutation({
     await ctx.db.patch(args.messageId, {
       content: args.content,
     })
+  },
+})
+
+export const deleteAfter = mutation({
+  args: {
+    chatId: v.id("chats"),
+    messageId: v.id("messages"),
+  },
+  handler: async (ctx, args) => {
+    const allMessages = await ctx.db
+      .query("messages")
+      .withIndex("by_chat", (q) => q.eq("chatId", args.chatId))
+      .order("asc")
+      .collect()
+
+    const targetIndex = allMessages.findIndex(m => m._id === args.messageId)
+    if (targetIndex === -1) return
+
+    // Delete all messages after the target message
+    const messagesToDelete = allMessages.slice(targetIndex + 1)
+    for (const message of messagesToDelete) {
+      await ctx.db.delete(message._id)
+    }
+
+    // Update chat's updatedAt timestamp
+    await ctx.db.patch(args.chatId, {
+      updatedAt: Date.now(),
+    })
+  },
+})
+
+export const deleteMessage = mutation({
+  args: {
+    messageId: v.id("messages"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.messageId)
   },
 })

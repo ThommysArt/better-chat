@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Copy, Check, User, Bot, Search, Lightbulb } from "lucide-react"
+import { Copy, Check, User, Bot, Search, Lightbulb, GitBranch, Edit3, RotateCcw, MoreHorizontal } from "lucide-react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { getModelById } from "@/lib/models"
@@ -11,6 +11,12 @@ import ReactMarkdown from "react-markdown"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism"
 import { toast } from "sonner"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface Message {
   _id: string
@@ -29,9 +35,20 @@ interface Message {
 interface ChatMessageProps {
   message: Message
   isStreaming?: boolean
+  onBranch?: (messageId: string) => void
+  onEdit?: (message: Message) => void
+  onRerun?: (messageId: string) => void
+  canEdit?: boolean
 }
 
-export function ChatMessage({ message, isStreaming = false }: ChatMessageProps) {
+export function ChatMessage({ 
+  message, 
+  isStreaming = false, 
+  onBranch, 
+  onEdit, 
+  onRerun,
+  canEdit = false 
+}: ChatMessageProps) {
   const [copied, setCopied] = useState(false)
   const model = message.modelId ? getModelById(message.modelId) : null
 
@@ -45,6 +62,24 @@ export function ChatMessage({ message, isStreaming = false }: ChatMessageProps) 
   const handleCopy = async (text: string) => {
     await navigator.clipboard.writeText(text)
     toast.success("Copied to clipboard")
+  }
+
+  const handleBranch = () => {
+    if (onBranch) {
+      onBranch(message._id)
+    }
+  }
+
+  const handleEdit = () => {
+    if (onEdit && canEdit) {
+      onEdit(message)
+    }
+  }
+
+  const handleRerun = () => {
+    if (onRerun) {
+      onRerun(message._id)
+    }
   }
 
   return (
@@ -163,13 +198,39 @@ export function ChatMessage({ message, isStreaming = false }: ChatMessageProps) 
       </div>
 
       {/* Actions */}
-      {message.role === "assistant" && !isStreaming && (
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={copyToClipboard} className="h-8 gap-2">
-            {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+      <div className="flex items-center gap-2 mt-2">
+        {message.role === "assistant" && !isStreaming && (
+          <>
+            <Button variant="ghost" size="sm" onClick={copyToClipboard} className="h-8 gap-2">
+              {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+            </Button>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <MoreHorizontal className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleBranch}>
+                  <GitBranch className="h-4 w-4 mr-2" />
+                  Branch from here
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleRerun}>
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Regenerate
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        )}
+
+        {message.role === "user" && canEdit && (
+          <Button variant="ghost" size="icon" onClick={handleEdit} className="mr-4">
+            <Edit3 className="h-4 w-4" />
           </Button>
-        </div>
-      )}
+        )}
+      </div>
     </motion.div>
   )
 }

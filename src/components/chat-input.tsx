@@ -75,6 +75,23 @@ export function ChatInput({
     },
   })
 
+  // Sync form with hook state
+  useEffect(() => {
+    form.setValue("message", input)
+  }, [input, form])
+
+  useEffect(() => {
+    form.setValue("modelId", selectedModelId || "google/gemini-2.0-flash")
+  }, [selectedModelId, form])
+
+  useEffect(() => {
+    form.setValue("useSearch", useSearch)
+  }, [useSearch, form])
+
+  useEffect(() => {
+    form.setValue("useThinking", useThinking)
+  }, [useThinking, form])
+
   useEffect(() => {
     if (autoFocus && textareaRef.current) {
       textareaRef.current.focus()

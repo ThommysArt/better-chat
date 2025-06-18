@@ -20,6 +20,57 @@ export const create = mutation({
   },
 })
 
+export const createFromExisting = mutation({
+  args: {
+    userId: v.string(),
+    title: v.string(),
+    modelId: v.string(),
+    sourceChatId: v.id("chats"),
+    upToMessageId: v.optional(v.id("messages")),
+  },
+  handler: async (ctx, args) => {
+    // Create new chat
+    const chatId = await ctx.db.insert("chats", {
+      userId: args.userId,
+      title: args.title,
+      modelId: args.modelId,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    })
+
+    // Get messages from source chat up to the specified message
+    const sourceMessages = await ctx.db
+      .query("messages")
+      .withIndex("by_chat", (q) => q.eq("chatId", args.sourceChatId))
+      .order("asc")
+      .collect()
+
+    let messagesToCopy = sourceMessages
+    if (args.upToMessageId) {
+      const upToIndex = sourceMessages.findIndex(m => m._id === args.upToMessageId)
+      if (upToIndex !== -1) {
+        messagesToCopy = sourceMessages.slice(0, upToIndex + 1)
+      }
+    }
+
+    // Copy messages to new chat
+    for (const message of messagesToCopy) {
+      await ctx.db.insert("messages", {
+        chatId,
+        userId: message.userId,
+        role: message.role,
+        content: message.content,
+        modelId: message.modelId,
+        attachments: message.attachments,
+        metadata: message.metadata,
+        createdAt: Date.now(),
+      })
+    }
+
+    return chatId
+  },
+})
+
 export const list = query({
   args: { userId: v.string() },
   handler: async (ctx, args) => {
@@ -80,5 +131,24 @@ export const remove = mutation({
 
     // Delete the chat
     await ctx.db.delete(args.chatId)
+  },
+})
+
+export const getMessagesUpTo = query({
+  args: { 
+    chatId: v.id("chats"),
+    messageId: v.id("messages"),
+  },
+  handler: async (ctx, args) => {
+    const allMessages = await ctx.db
+      .query("messages")
+      .withIndex("by_chat", (q) => q.eq("chatId", args.chatId))
+      .order("asc")
+      .collect()
+
+    const targetIndex = allMessages.findIndex(m => m._id === args.messageId)
+    if (targetIndex === -1) return []
+
+    return allMessages.slice(0, targetIndex + 1)
   },
 })

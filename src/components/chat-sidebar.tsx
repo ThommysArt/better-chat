@@ -191,14 +191,9 @@ export function ChatSidebar({ currentChatId, onNewChat, userId }: ChatSidebarPro
     return (
       <div key={key} className="mb-4">
         <h3 className="text-xs font-medium text-muted-foreground mb-2 px-4">{title}</h3>
-        <AnimatePresence>
           {chats.map((chat) => (
-            <motion.div
+            <div
               key={chat._id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2 }}
             >
               <SidebarMenuItem>
                 <SidebarMenuButton
@@ -247,9 +242,8 @@ export function ChatSidebar({ currentChatId, onNewChat, userId }: ChatSidebarPro
                   </div>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            </motion.div>
+            </div>
           ))}
-        </AnimatePresence>
       </div>
     )
   }

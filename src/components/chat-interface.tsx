@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useUser } from "@clerk/nextjs"
-import { useQuery } from "convex/react"
+import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { ChatInput } from "./chat-input"
@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button"
 import { Settings, Plus } from "lucide-react"
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { ThemeSwitcher } from "@/components/theme-switcher"
+import { useChat } from "@/hooks/use-chat"
+import { toast } from "sonner"
 
 interface ChatInterfaceProps {
   chatId?: Id<"chats">
@@ -26,6 +28,33 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
 
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamingMessageId, setStreamingMessageId] = useState<Id<"messages"> | null>(null)
+  const [streamingContent, setStreamingContent] = useState("")
+
+  // Mutations
+  const createChat = useMutation(api.chats.create)
+  const createChatFromExisting = useMutation(api.chats.createFromExisting)
+  const deleteAfter = useMutation(api.messages.deleteAfter)
+  const deleteMessage = useMutation(api.messages.deleteMessage)
+  const updateMessage = useMutation(api.messages.update)
+
+  const {
+    input,
+    handleInputChange,
+    handleSubmit,
+    isLoading,
+    selectedModelId,
+    setSelectedModelId,
+    useSearch,
+    setUseSearch,
+    useThinking,
+    setUseThinking,
+    attachments,
+    handleFileSelect,
+    removeAttachment,
+    clearAttachments,
+    setInput,
+    setAttachments,
+  } = useChat({ chatId })
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -33,7 +62,111 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
 
   useEffect(() => {
     scrollToBottom()
-  }, [messages])
+  }, [messages, streamingContent])
+
+  // Handle branching from a message
+  const handleBranch = async (messageId: string) => {
+    if (!isSignedIn || !chatId) return
+
+    try {
+      const newChatId = await createChatFromExisting({
+        userId: user!.id,
+        title: `Branch from ${new Date().toLocaleString()}`,
+        modelId: selectedModelId || "google/gemini-2.0-flash",
+        sourceChatId: chatId,
+        upToMessageId: messageId as Id<"messages">,
+      })
+
+      router.push(`/chat/${newChatId}`)
+      toast.success("Chat branched successfully")
+    } catch (error) {
+      console.error("Error branching chat:", error)
+      toast.error("Failed to branch chat")
+    }
+  }
+
+  // Handle editing a user message
+  const handleEdit = async (message: any) => {
+    if (!isSignedIn || !chatId) return
+
+    try {
+      // Delete all messages after this one
+      await deleteAfter({
+        chatId: chatId as Id<"chats">,
+        messageId: message._id as Id<"messages">,
+      })
+
+      // Set the form values for editing
+      setInput(message.content)
+      setSelectedModelId(message.modelId || "google/gemini-2.0-flash")
+      
+      // Set attachments if any
+      if (message.attachments && message.attachments.length > 0) {
+        // Convert attachment names back to File objects (simplified)
+        const attachmentFiles = message.attachments.map((name: string) => 
+          new File([""], name, { type: "text/plain" })
+        )
+        setAttachments(attachmentFiles)
+      }
+
+      // Set metadata if available
+      if (message.metadata) {
+        setUseSearch(message.metadata.searchUsed || false)
+        setUseThinking(message.metadata.thinkingUsed || false)
+      }
+
+      toast.success("Message loaded for editing")
+    } catch (error) {
+      console.error("Error editing message:", error)
+      toast.error("Failed to edit message")
+    }
+  }
+
+  // Handle re-running a message
+  const handleRerun = async (messageId: string) => {
+    if (!isSignedIn || !chatId) return
+
+    try {
+      // Delete all messages after this one
+      await deleteAfter({
+        chatId: chatId as Id<"chats">,
+        messageId: messageId as Id<"messages">,
+      })
+
+      // Find the message to re-run
+      const messageToRerun = messages?.find(m => m._id === messageId)
+      if (!messageToRerun) return
+
+      // Set the form values
+      setInput(messageToRerun.content)
+      setSelectedModelId(messageToRerun.modelId || "google/gemini-2.0-flash")
+      
+      if (messageToRerun.attachments && messageToRerun.attachments.length > 0) {
+        const attachmentFiles = messageToRerun.attachments.map((name: string) => 
+          new File([""], name, { type: "text/plain" })
+        )
+        setAttachments(attachmentFiles)
+      }
+
+      if (messageToRerun.metadata) {
+        setUseSearch(messageToRerun.metadata.searchUsed || false)
+        setUseThinking(messageToRerun.metadata.thinkingUsed || false)
+      }
+
+      // Submit the form
+      handleSubmit(new Event("submit") as any)
+      toast.success("Message re-running")
+    } catch (error) {
+      console.error("Error re-running message:", error)
+      toast.error("Failed to re-run message")
+    }
+  }
+
+  // Check if a message can be edited (no newer messages)
+  const canEditMessage = (messageIndex: number) => {
+    if (!messages) return false
+    return messageIndex === messages.length - 1
+  }
 
   return (
     <SidebarProvider>
@@ -77,9 +210,31 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
               </div>
             ) : (
               <div className="space-y-6 p-4">
-                {messages.map((message) => (
-                  <ChatMessage key={message._id} message={message} isStreaming={streamingMessageId === message._id} />
+                {messages.map((message, index) => (
+                  <ChatMessage 
+                    key={message._id} 
+                    message={message} 
+                    isStreaming={streamingMessageId === message._id}
+                    onBranch={handleBranch}
+                    onEdit={handleEdit}
+                    onRerun={handleRerun}
+                    canEdit={message.role === "user" && canEditMessage(index)}
+                  />
                 ))}
+                
+                {/* Show streaming message if active */}
+                {isStreaming && streamingMessageId && (
+                  <ChatMessage 
+                    message={{
+                      _id: streamingMessageId,
+                      role: "assistant",
+                      content: streamingContent,
+                      createdAt: Date.now(),
+                    }}
+                    isStreaming={true}
+                  />
+                )}
+                
                 <div ref={messagesEndRef} />
               </div>
             )}

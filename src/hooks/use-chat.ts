@@ -130,5 +130,10 @@ export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, c
     removeAttachment,
     clearAttachments,
     isSignedIn,
+    setInput: (value: string) => {
+      const event = { target: { value } } as React.ChangeEvent<HTMLTextAreaElement>
+      handleInputChange(event)
+    },
+    setAttachments,
   }
 } 

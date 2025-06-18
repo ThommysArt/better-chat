@@ -44,7 +44,7 @@ export function ModelSelector({
           ),
         ).map(([company, companyModels]) => (
           <div key={company}>
-            <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">{company}</div>
+            <div className="px-2 py-1.5 text-sm font-semibold text-primary-foreground">{company}</div>
             {companyModels.map((model) => (
               <SelectItem key={model.id} value={model.id} className="flex flex-col items-start gap-1 p-3">
                 <div className="flex items-center justify-between w-full">
