@@ -21,6 +21,7 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { useParams } from "next/navigation"
 import { Id } from "@/convex/_generated/dataModel"
+import { cn } from "@/lib/utils"
 
 const chatFormSchema = z.object({
   message: z.string().min(1, "Message cannot be empty"),
@@ -163,13 +164,17 @@ export function ChatInput({
                     render={({ field }) => (
                       <FormItem className="flex items-center gap-2">
                         <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
+                          <Button 
+                            variant={field.value ? "default" : "outline"}
+                            onClick={() => field.onChange(!field.value)}
                             disabled={disabled || isLoading}
-                          />
+                            size="sm"
+                            className={cn(field.value && "bg-primary/20")}
+                          >
+                            <Search className="h-4 w-4" />
+                            <span className="hidden md:block text-sm">Search</span>
+                          </Button>
                         </FormControl>
-                        <Label>DeepSearch</Label>
                       </FormItem>
                     )}
                   />
@@ -180,13 +185,17 @@ export function ChatInput({
                     render={({ field }) => (
                       <FormItem className="flex items-center gap-2">
                         <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
+                          <Button 
+                            variant={field.value ? "default" : "outline"}
+                            onClick={() => field.onChange(!field.value)}
                             disabled={disabled || isLoading}
-                          />
+                            size="sm"
+                            className={cn(field.value && "bg-primary/20")}
+                          >
+                            <Brain className="h-4 w-4" />
+                            <span className="hidden md:block text-sm">Thinking</span>
+                          </Button>
                         </FormControl>
-                        <Label>Thinking</Label>
                       </FormItem>
                     )}
                   />
