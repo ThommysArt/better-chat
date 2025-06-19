@@ -17,19 +17,35 @@ import { Switch } from "@/components/ui/switch"
 
 function SettingsPage() {
   const router = useRouter()
-  const [apiKey, setApiKey] = useState("")
-  const [showApiKey, setShowApiKey] = useState(false)
+  const [apiKeys, setApiKeys] = useState({
+    openrouter: "",
+    openai: "",
+    anthropic: "",
+    xai: "",
+    google: "",
+  })
+  const [showApiKeys, setShowApiKeys] = useState({
+    openrouter: false,
+    openai: false,
+    anthropic: false,
+    xai: false,
+    google: false,
+  })
   const [saved, setSaved] = useState(false)
   const searchParams = useSearchParams()
   const tab = searchParams.get("tab") as "profile" | "system" | "models" | undefined
   const [enabledModels, setEnabledModels] = useState<string[]>([])
 
   useEffect(() => {
-    // Load saved API key
-    const savedKey = localStorage.getItem("openrouter-api-key")
-    if (savedKey) {
-      setApiKey(savedKey)
+    // Load saved API keys
+    const savedKeys = {
+      openrouter: localStorage.getItem("openrouter-api-key") || "",
+      openai: localStorage.getItem("openai-api-key") || "",
+      anthropic: localStorage.getItem("anthropic-api-key") || "",
+      xai: localStorage.getItem("xai-api-key") || "",
+      google: localStorage.getItem("google-api-key") || "",
     }
+    setApiKeys(savedKeys)
 
     // Load enabled models from localStorage or default to all
     const stored = localStorage.getItem("enabled-models")
@@ -40,19 +56,28 @@ function SettingsPage() {
     }
   }, [])
 
-  const saveApiKey = () => {
-    if (apiKey.trim()) {
-      localStorage.setItem("openrouter-api-key", apiKey.trim())
+  const saveApiKey = (provider: string) => {
+    const key = apiKeys[provider as keyof typeof apiKeys]
+    if (key.trim()) {
+      localStorage.setItem(`${provider}-api-key`, key.trim())
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     }
   }
 
-  const removeApiKey = () => {
-    localStorage.removeItem("openrouter-api-key")
-    setApiKey("")
+  const removeApiKey = (provider: string) => {
+    localStorage.removeItem(`${provider}-api-key`)
+    setApiKeys(prev => ({ ...prev, [provider]: "" }))
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
+  }
+
+  const handleApiKeyChange = (provider: string, value: string) => {
+    setApiKeys(prev => ({ ...prev, [provider]: value }))
+  }
+
+  const toggleShowApiKey = (provider: string) => {
+    setShowApiKeys(prev => ({ ...prev, [provider]: !prev[provider as keyof typeof prev] }))
   }
 
   const handleModelSwitch = (id: string) => {
@@ -117,49 +142,214 @@ function SettingsPage() {
           {/* API Key Settings */}
           <Card>
             <CardHeader>
-              <CardTitle>Bring Your Own Key</CardTitle>
+              <CardTitle>API Keys</CardTitle>
               <CardDescription>
-                Use your own OpenRouter API key to access all models. Your key is stored locally and never sent to our
-                servers.
+                Use your own API keys to access models directly. Your keys are stored locally and never sent to our servers.
+                User-provided keys take priority over environment variables.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
+              {/* OpenRouter */}
               <div className="space-y-2">
-                <Label htmlFor="api-key">OpenRouter API Key</Label>
+                <Label htmlFor="openrouter-key">OpenRouter API Key</Label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <Input
-                      id="api-key"
-                      type={showApiKey ? "text" : "password"}
+                      id="openrouter-key"
+                      type={showApiKeys.openrouter ? "text" : "password"}
                       placeholder="sk-or-v1-..."
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
+                      value={apiKeys.openrouter}
+                      onChange={(e) => handleApiKeyChange("openrouter", e.target.value)}
                       className="pr-10"
                     />
                     <Button
                       variant="ghost"
                       size="sm"
                       className="absolute right-0 top-0 h-full px-3"
-                      onClick={() => setShowApiKey(!showApiKey)}
+                      onClick={() => toggleShowApiKey("openrouter")}
                     >
-                      {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showApiKeys.openrouter ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                   </div>
-                  <Button onClick={saveApiKey} disabled={!apiKey.trim()} className="gap-2">
+                  <Button onClick={() => saveApiKey("openrouter")} disabled={!apiKeys.openrouter.trim()} className="gap-2">
                     <Save className="h-4 w-4" />
                     {saved ? "Saved!" : "Save"}
                   </Button>
-                  {apiKey && (
-                    <Button variant="outline" onClick={removeApiKey} className="gap-2">
+                  {apiKeys.openrouter && (
+                    <Button variant="outline" onClick={() => removeApiKey("openrouter")} className="gap-2">
                       <Trash2 className="h-4 w-4" />
                       Remove
                     </Button>
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Get your API key from{" "}
+                  Access all models through OpenRouter. Get your key from{" "}
                   <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="underline">
                     OpenRouter
+                  </a>
+                </p>
+              </div>
+
+              {/* OpenAI */}
+              <div className="space-y-2">
+                <Label htmlFor="openai-key">OpenAI API Key</Label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      id="openai-key"
+                      type={showApiKeys.openai ? "text" : "password"}
+                      placeholder="sk-..."
+                      value={apiKeys.openai}
+                      onChange={(e) => handleApiKeyChange("openai", e.target.value)}
+                      className="pr-10"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3"
+                      onClick={() => toggleShowApiKey("openai")}
+                    >
+                      {showApiKeys.openai ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  <Button onClick={() => saveApiKey("openai")} disabled={!apiKeys.openai.trim()} className="gap-2">
+                    <Save className="h-4 w-4" />
+                    {saved ? "Saved!" : "Save"}
+                  </Button>
+                  {apiKeys.openai && (
+                    <Button variant="outline" onClick={() => removeApiKey("openai")} className="gap-2">
+                      <Trash2 className="h-4 w-4" />
+                      Remove
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Direct access to OpenAI models. Get your key from{" "}
+                  <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="underline">
+                    OpenAI Platform
+                  </a>
+                </p>
+              </div>
+
+              {/* Anthropic */}
+              <div className="space-y-2">
+                <Label htmlFor="anthropic-key">Anthropic API Key</Label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      id="anthropic-key"
+                      type={showApiKeys.anthropic ? "text" : "password"}
+                      placeholder="sk-ant-..."
+                      value={apiKeys.anthropic}
+                      onChange={(e) => handleApiKeyChange("anthropic", e.target.value)}
+                      className="pr-10"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3"
+                      onClick={() => toggleShowApiKey("anthropic")}
+                    >
+                      {showApiKeys.anthropic ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  <Button onClick={() => saveApiKey("anthropic")} disabled={!apiKeys.anthropic.trim()} className="gap-2">
+                    <Save className="h-4 w-4" />
+                    {saved ? "Saved!" : "Save"}
+                  </Button>
+                  {apiKeys.anthropic && (
+                    <Button variant="outline" onClick={() => removeApiKey("anthropic")} className="gap-2">
+                      <Trash2 className="h-4 w-4" />
+                      Remove
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Direct access to Anthropic models. Get your key from{" "}
+                  <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer" className="underline">
+                    Anthropic Console
+                  </a>
+                </p>
+              </div>
+
+              {/* xAI */}
+              <div className="space-y-2">
+                <Label htmlFor="xai-key">xAI API Key</Label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      id="xai-key"
+                      type={showApiKeys.xai ? "text" : "password"}
+                      placeholder="xai-..."
+                      value={apiKeys.xai}
+                      onChange={(e) => handleApiKeyChange("xai", e.target.value)}
+                      className="pr-10"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3"
+                      onClick={() => toggleShowApiKey("xai")}
+                    >
+                      {showApiKeys.xai ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  <Button onClick={() => saveApiKey("xai")} disabled={!apiKeys.xai.trim()} className="gap-2">
+                    <Save className="h-4 w-4" />
+                    {saved ? "Saved!" : "Save"}
+                  </Button>
+                  {apiKeys.xai && (
+                    <Button variant="outline" onClick={() => removeApiKey("xai")} className="gap-2">
+                      <Trash2 className="h-4 w-4" />
+                      Remove
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Direct access to xAI models. Get your key from{" "}
+                  <a href="https://console.x.ai/" target="_blank" rel="noopener noreferrer" className="underline">
+                    xAI Console
+                  </a>
+                </p>
+              </div>
+
+              {/* Google */}
+              <div className="space-y-2">
+                <Label htmlFor="google-key">Google API Key</Label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      id="google-key"
+                      type={showApiKeys.google ? "text" : "password"}
+                      placeholder="AIza..."
+                      value={apiKeys.google}
+                      onChange={(e) => handleApiKeyChange("google", e.target.value)}
+                      className="pr-10"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3"
+                      onClick={() => toggleShowApiKey("google")}
+                    >
+                      {showApiKeys.google ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  <Button onClick={() => saveApiKey("google")} disabled={!apiKeys.google.trim()} className="gap-2">
+                    <Save className="h-4 w-4" />
+                    {saved ? "Saved!" : "Save"}
+                  </Button>
+                  {apiKeys.google && (
+                    <Button variant="outline" onClick={() => removeApiKey("google")} className="gap-2">
+                      <Trash2 className="h-4 w-4" />
+                      Remove
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Direct access to Google models. Get your key from{" "}
+                  <a href="https://makersuite.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline">
+                    Google AI Studio
                   </a>
                 </p>
               </div>
@@ -174,11 +364,17 @@ function SettingsPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                When using your own API key, you'll be billed directly by OpenRouter based on your usage. Check your{" "}
-                <a href="https://openrouter.ai/activity" target="_blank" rel="noopener noreferrer" className="underline">
-                  OpenRouter dashboard
-                </a>{" "}
-                for detailed usage statistics.
+                When using your own API keys, you'll be billed directly by the respective providers based on your usage:
+              </p>
+              <ul className="text-sm text-muted-foreground mt-2 space-y-1">
+                <li>• <strong>OpenRouter:</strong> Check your <a href="https://openrouter.ai/activity" target="_blank" rel="noopener noreferrer" className="underline">OpenRouter dashboard</a> for usage statistics</li>
+                <li>• <strong>OpenAI:</strong> Check your <a href="https://platform.openai.com/usage" target="_blank" rel="noopener noreferrer" className="underline">OpenAI usage dashboard</a></li>
+                <li>• <strong>Anthropic:</strong> Check your <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer" className="underline">Anthropic console</a></li>
+                <li>• <strong>xAI:</strong> Check your <a href="https://console.x.ai/" target="_blank" rel="noopener noreferrer" className="underline">xAI console</a></li>
+                <li>• <strong>Google:</strong> Check your <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="underline">Google Cloud console</a></li>
+              </ul>
+              <p className="text-sm text-muted-foreground mt-2">
+                User-provided API keys take priority over environment variables. If no user key is provided, the system will fall back to environment variables.
               </p>
             </CardContent>
           </Card>

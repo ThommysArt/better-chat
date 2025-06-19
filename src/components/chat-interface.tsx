@@ -249,7 +249,7 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
                         />
                       ))}
                       {/* Show streaming assistant message from SDK */}
-                      {isLoading && sdkAssistant && (
+                      {sdkAssistant && (
                         <ChatMessage 
                           message={{
                             _id: "streaming-assistant",

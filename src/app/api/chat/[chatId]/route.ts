@@ -15,7 +15,7 @@ import { MODELS } from '@/lib/models'
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ chatId: string }> }) {
   try {
-    const { messages, modelId, useSearch, useThinking } = await req.json()
+    const { messages, modelId, useSearch, useThinking, apiKeys } = await req.json()
     const chatId = (await params).chatId as Id<'chats'>
     const { userId } = await auth()
 
@@ -43,10 +43,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cha
     const model = MODELS.find(m => m.id === modelId) || MODELS.find(m => m.id === 'google/gemini-2.0-flash')
     let modelFn: any = google
     let providerOptions: any = {}
+    let apiKey: string | undefined
+    
     if (model) {
       switch (model.provider) {
         case 'google':
           modelFn = google
+          apiKey = apiKeys?.google || process.env.GOOGLE_API_KEY
           providerOptions = {
             google: {
               responseModalities: ['TEXT'],
@@ -56,34 +59,56 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cha
         case 'openai':
           modelFn = openai
           providerOptions = {
-            openai: {},
+            openai: {
+              apiKey: apiKeys?.openai || process.env.OPENAI_API_KEY,
+            },
           }
           break
         case 'anthropic':
           modelFn = anthropic
           providerOptions = {
-            anthropic: {},
+            anthropic: {
+              apiKey: apiKeys?.anthropic || process.env.ANTHROPIC_API_KEY,
+            },
           }
           break
         case 'xai':
           modelFn = xai
           providerOptions = {
-            xai: {},
+            xai: {
+              apiKey: apiKeys?.xai || process.env.XAI_API_KEY,
+            },
           }
           break
         case 'openrouter':
           // OpenRouter can proxy to multiple providers, use openai/anthropic/xai as needed
           if (model.id.startsWith('openai/')) {
             modelFn = openai
-            providerOptions = { openai: {} }
+            providerOptions = { 
+              openai: {
+                apiKey: apiKeys?.openrouter || process.env.OPENROUTER_API_KEY,
+                baseURL: "https://openrouter.ai/api/v1",
+              }
+            }
           } else if (model.id.startsWith('anthropic/')) {
             modelFn = anthropic
-            providerOptions = { anthropic: {} }
+            providerOptions = { 
+              anthropic: {
+                apiKey: apiKeys?.openrouter || process.env.OPENROUTER_API_KEY,
+                baseURL: "https://openrouter.ai/api/v1",
+              }
+            }
           } else if (model.id.startsWith('xai/')) {
             modelFn = xai
-            providerOptions = { xai: {} }
+            providerOptions = { 
+              xai: {
+                apiKey: apiKeys?.openrouter || process.env.OPENROUTER_API_KEY,
+                baseURL: "https://openrouter.ai/api/v1",
+              }
+            }
           } else if (model.id.startsWith('google/')) {
             modelFn = google
+            apiKey = apiKeys?.openrouter || process.env.OPENROUTER_API_KEY
             providerOptions = {
               google: {
                 responseModalities: ['TEXT'],
@@ -93,6 +118,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cha
           break
         default:
           modelFn = google
+          apiKey = apiKeys?.google || process.env.GOOGLE_API_KEY
           providerOptions = {
             google: {
               responseModalities: ['TEXT'],
@@ -102,7 +128,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cha
     }
 
     const result = streamText({
-      model: model && modelFn(model.codeName),
+      model: model && modelFn(model.codeName, { apiKey }),
       messages: messages.map((m: Message) => ({
         role: m.role,
         content: m.content,

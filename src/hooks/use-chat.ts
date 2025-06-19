@@ -51,6 +51,13 @@ export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, c
       useSearch,
       useThinking,
       attachments: attachments.map(f => ({ name: f.name, type: f.type })),
+      apiKeys: {
+        openrouter: localStorage.getItem("openrouter-api-key") || undefined,
+        openai: localStorage.getItem("openai-api-key") || undefined,
+        anthropic: localStorage.getItem("anthropic-api-key") || undefined,
+        xai: localStorage.getItem("xai-api-key") || undefined,
+        google: localStorage.getItem("google-api-key") || undefined,
+      },
     },
     onResponse: (response) => {
       const reader = response.body?.getReader()
