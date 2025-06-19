@@ -6,11 +6,18 @@ import { useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useParams, useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 interface UseChatOptions {
   initialModelId?: string
   onError?: (error: Error) => void
   chatId?: Id<"chats">
+}
+
+interface Attachment {
+  name: string
+  type: string
+  storageId: string
 }
 
 export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, chatId }: UseChatOptions = {}) {
@@ -21,6 +28,7 @@ export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, c
   const [useSearch, setUseSearch] = useState(false)
   const [useThinking, setUseThinking] = useState(false)
   const [attachments, setAttachments] = useState<File[]>([])
+  const [streamingContent, setStreamingContent] = useState("")
 
   const createChat = useMutation(api.chats.create)
   const createMessage = useMutation(api.messages.create)
@@ -30,7 +38,7 @@ export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, c
   const currentChatId = params.chatId as Id<"chats"> || chatId
 
   const {
-    messages,
+    messages: sdkMessages,
     input,
     handleInputChange,
     handleSubmit: handleVercelSubmit,
@@ -42,6 +50,38 @@ export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, c
       modelId: selectedModelId,
       useSearch,
       useThinking,
+      attachments: attachments.map(f => ({ name: f.name, type: f.type })),
+    },
+    onResponse: (response) => {
+      const reader = response.body?.getReader()
+      if (!reader) return
+
+      const decoder = new TextDecoder()
+      const readChunk = async () => {
+        const { done, value } = await reader.read()
+        if (done) return
+        const chunk = decoder.decode(value)
+        try {
+          const json = JSON.parse(chunk)
+          if (json.content) {
+            setStreamingContent(json.content)
+          }
+        } catch (e) {
+          // Ignore invalid JSON chunks
+        }
+        readChunk()
+      }
+      readChunk()
+    },
+    onFinish: async (message) => {
+      setStreamingContent("")
+      if (currentChatId && user && message.content) {
+        // Update the assistant message in Convex with the final content
+        await updateMessage({
+          messageId: sdkMessages[sdkMessages.length - 1].id as Id<"messages">,
+          content: message.content,
+        })
+      }
     },
     onError,
   })
@@ -81,18 +121,41 @@ export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, c
           router.push(`/chat/${chatIdToUse}`)
         }
 
-        // Add user message
-        await createMessage({
-          chatId: chatIdToUse,
-          userId: user.id,
-          role: "user",
-          content: input,
-          attachments: attachments.map((f) => f.name),
-        })
+        try {
+          // Upload attachments to Convex storage first
+          const uploadedAttachments = await Promise.all(
+            attachments.map(async (file) => {
+              const formData = new FormData()
+              formData.append("file", file)
+              const response = await fetch("/api/upload", {
+                method: "POST",
+                body: formData,
+              })
+              if (!response.ok) throw new Error("Failed to upload file")
+              const { storageId } = await response.json()
+              return {
+                name: file.name,
+                type: file.type,
+                storageId,
+              }
+            })
+          )
 
-        handleVercelSubmit(e)
+          // Add user message with attachment references
+          await createMessage({
+            chatId: chatIdToUse,
+            userId: user.id,
+            role: "user",
+            content: input,
+            attachments: uploadedAttachments,
+          })
 
-        setAttachments([])
+          handleVercelSubmit(e)
+          setAttachments([])
+        } catch (error) {
+          console.error("Error handling attachments:", error)
+          toast.error("Failed to upload attachments")
+        }
       } else {
         // For non-authenticated users, just use Vercel AI SDK
         handleVercelSubmit(e)
@@ -112,6 +175,20 @@ export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, c
   const clearAttachments = useCallback(() => {
     setAttachments([])
   }, [])
+
+  // Combine SDK messages with streaming content
+  const messages = useMemo(() => {
+    if (!sdkMessages) return []
+    
+    const result = [...sdkMessages]
+    if (isLoading && streamingContent && result[result.length - 1]?.role === "assistant") {
+      result[result.length - 1] = {
+        ...result[result.length - 1],
+        content: streamingContent,
+      }
+    }
+    return result
+  }, [sdkMessages, isLoading, streamingContent])
 
   return {
     messages,

@@ -2,6 +2,8 @@
 
 A modern, extensible chat application with advanced features and a beautiful UI.
 
+**Developer:** [@thommysart](https://x.com/thommysart)
+
 ## Features
 
 - **Multiple LLM Access**: Seamlessly switch between different large language models (LLMs) including OpenAI, Anthropic, and more via OpenRouter integration.

@@ -20,10 +20,10 @@ import {
 
 interface Message {
   _id: string
-  role: "user" | "assistant"
+  role: string
   content: string
   modelId?: string
-  attachments?: string[]
+  attachments?: { name: string; type: string; storageId: string }[]
   metadata?: {
     searchUsed?: boolean
     thinkingUsed?: boolean
@@ -222,7 +222,7 @@ export function ChatMessage({
           <div className="flex flex-wrap gap-2 mt-2">
             {message.attachments.map((fileName, index) => (
               <div key={index} className="flex items-center gap-2 bg-muted px-3 py-2 rounded-lg text-sm">
-                <span className="truncate">{fileName}</span>
+                <span className="truncate">{fileName.name}</span>
               </div>
             ))}
           </div>

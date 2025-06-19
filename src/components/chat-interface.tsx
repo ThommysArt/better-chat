@@ -100,9 +100,9 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
       
       // Set attachments if any
       if (message.attachments && message.attachments.length > 0) {
-        // Convert attachment names back to File objects (simplified)
-        const attachmentFiles = message.attachments.map((name: string) => 
-          new File([""], name, { type: "text/plain" })
+        // Convert attachment objects back to File objects (simplified)
+        const attachmentFiles = message.attachments.map((attachment: { name: string; type: string; storageId: string }) => 
+          new File([""], attachment.name, { type: attachment.type || "text/plain" })
         )
         setAttachments(attachmentFiles)
       }
@@ -140,8 +140,8 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
       setSelectedModelId(messageToRerun.modelId || "google/gemini-2.0-flash")
       
       if (messageToRerun.attachments && messageToRerun.attachments.length > 0) {
-        const attachmentFiles = messageToRerun.attachments.map((name: string) => 
-          new File([""], name, { type: "text/plain" })
+        const attachmentFiles = messageToRerun.attachments.map((attachment: { name: string; type: string; storageId: string }) => 
+          new File([""], attachment.name, { type: attachment.type || "text/plain" })
         )
         setAttachments(attachmentFiles)
       }
@@ -256,6 +256,12 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
                             role: "assistant",
                             content: sdkAssistant.content,
                             createdAt: Date.now(),
+                            modelId: selectedModelId,
+                            attachments: [],
+                            metadata: {
+                              searchUsed: useSearch,
+                              thinkingUsed: useThinking,
+                            },
                           }}
                           isStreaming={true}
                         />

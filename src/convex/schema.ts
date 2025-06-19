@@ -8,24 +8,35 @@ export default defineSchema({
     modelId: v.string(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("by_user", ["userId"]),
+  })
+    .index("by_user", ["userId"])
+    .index("by_updated", ["updatedAt"]),
 
   messages: defineTable({
     chatId: v.id("chats"),
     userId: v.string(),
-    role: v.union(v.literal("user"), v.literal("assistant")),
+    role: v.string(),
     content: v.string(),
     modelId: v.optional(v.string()),
-    attachments: v.optional(v.array(v.string())), // File Urls
     metadata: v.optional(
       v.object({
-        searchUsed: v.optional(v.boolean()),
-        thinkingUsed: v.optional(v.boolean()),
-        tokensUsed: v.optional(v.number()),
-      }),
+        searchUsed: v.boolean(),
+        thinkingUsed: v.boolean(),
+      })
+    ),
+    attachments: v.optional(
+      v.array(
+        v.object({
+          name: v.string(),
+          type: v.string(),
+          storageId: v.string(),
+        })
+      )
     ),
     createdAt: v.number(),
-  }).index("by_chat", ["chatId"]),
+  })
+    .index("by_chat", ["chatId"])
+    .index("by_user", ["userId"]),
 
   files: defineTable({
     userId: v.string(),

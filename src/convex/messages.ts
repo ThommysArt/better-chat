@@ -5,15 +5,22 @@ export const create = mutation({
   args: {
     chatId: v.id("chats"),
     userId: v.string(),
-    role: v.union(v.literal("user"), v.literal("assistant")),
+    role: v.string(),
     content: v.string(),
     modelId: v.optional(v.string()),
-    attachments: v.optional(v.array(v.string())),
+    attachments: v.optional(
+      v.array(
+        v.object({
+          name: v.string(),
+          type: v.string(),
+          storageId: v.string(),
+        })
+      )
+    ),
     metadata: v.optional(
       v.object({
-        searchUsed: v.optional(v.boolean()),
-        thinkingUsed: v.optional(v.boolean()),
-        tokensUsed: v.optional(v.number()),
+        searchUsed: v.boolean(),
+        thinkingUsed: v.boolean(),
       }),
     ),
   },
