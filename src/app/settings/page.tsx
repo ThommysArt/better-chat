@@ -12,6 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { UserProfile } from "@clerk/nextjs"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Skeleton } from "@/components/ui/skeleton"
+import { MODELS } from "@/lib/models"
+import { Switch } from "@/components/ui/switch"
 
 function SettingsPage() {
   const router = useRouter()
@@ -19,13 +21,22 @@ function SettingsPage() {
   const [showApiKey, setShowApiKey] = useState(false)
   const [saved, setSaved] = useState(false)
   const searchParams = useSearchParams()
-  const tab = searchParams.get("tab") as "profile" | "system" | undefined
+  const tab = searchParams.get("tab") as "profile" | "system" | "models" | undefined
+  const [enabledModels, setEnabledModels] = useState<string[]>([])
 
   useEffect(() => {
     // Load saved API key
     const savedKey = localStorage.getItem("openrouter-api-key")
     if (savedKey) {
       setApiKey(savedKey)
+    }
+
+    // Load enabled models from localStorage or default to all
+    const stored = localStorage.getItem("enabled-models")
+    if (stored) {
+      setEnabledModels(JSON.parse(stored))
+    } else {
+      setEnabledModels(MODELS.map(m => m.id))
     }
   }, [])
 
@@ -42,6 +53,19 @@ function SettingsPage() {
     setApiKey("")
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
+  }
+
+  const handleModelSwitch = (id: string) => {
+    setEnabledModels((prev) => {
+      let updated: string[]
+      if (prev.includes(id)) {
+        updated = prev.filter(mid => mid !== id)
+      } else {
+        updated = [...prev, id]
+      }
+      localStorage.setItem("enabled-models", JSON.stringify(updated))
+      return updated
+    })
   }
 
   return (
@@ -63,6 +87,7 @@ function SettingsPage() {
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="system">System</TabsTrigger>
+          <TabsTrigger value="models">Models</TabsTrigger>
         </TabsList>
         <TabsContent value="profile">
           <UserProfile />
@@ -155,6 +180,26 @@ function SettingsPage() {
                 </a>{" "}
                 for detailed usage statistics.
               </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="models" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Available Models</CardTitle>
+              <CardDescription>Select which models you want to appear in the model selector.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {MODELS.map(model => (
+                <div key={model.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
+                  <div>
+                    <div className="font-medium">{model.name}</div>
+                    <div className="text-xs text-muted-foreground">{model.company} &mdash; {model.description}</div>
+                  </div>
+                  <Switch checked={enabledModels.includes(model.id)} onCheckedChange={() => handleModelSwitch(model.id)} />
+                </div>
+              ))}
             </CardContent>
           </Card>
         </TabsContent>

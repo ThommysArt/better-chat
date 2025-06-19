@@ -1,12 +1,18 @@
+import { useEffect, useState } from "react"
+import { MODELS, getModelById } from "@/lib/models"
 import { Badge } from "@/components/ui/badge"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { getAllModels, getModelById, ModelProvider } from "@/lib/models"
+  Command,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+  CommandSeparator,
+} from "@/components/ui/command"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Button } from "@/components/ui/button"
+import { ChevronDown } from "lucide-react"
 
 interface ModelSelectorProps {
   selectedModelId: string
@@ -21,47 +27,72 @@ export function ModelSelector({
   disabled = false,
   isSignedIn,
 }: ModelSelectorProps) {
+  const [enabledModels, setEnabledModels] = useState<string[]>([])
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    const stored = localStorage.getItem("enabled-models")
+    if (stored) {
+      setEnabledModels(JSON.parse(stored))
+    } else {
+      setEnabledModels(MODELS.map(m => m.id))
+    }
+  }, [])
+
+  const availableModels = MODELS.filter(m => enabledModels.includes(m.id))
   const selectedModel = getModelById(selectedModelId)
-  const models = getAllModels()
-  const availableModels = isSignedIn ? models : models.filter((model) => model.id === "google/gemini-2.0-flash-exp")
 
   return (
-    <Select value={selectedModelId} onValueChange={onModelSelect} disabled={disabled}>
-      <SelectTrigger className="w-48">
-        <SelectValue placeholder="Select Model">
-          {selectedModel?.name || "Select Model"}
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent className="w-64">
-        {Object.entries(
-          availableModels.reduce(
-            (acc, model) => {
-              if (!acc[model.company]) acc[model.company] = []
-              acc[model.company].push(model)
-              return acc
-            },
-            {} as Record<string, typeof availableModels>,
-          ),
-        ).map(([company, companyModels]) => (
-          <div key={company}>
-            <div className="px-2 py-1.5 text-sm font-semibold text-primary-foreground">{company}</div>
-            {companyModels.map((model) => (
-              <SelectItem key={model.id} value={model.id} className="flex flex-col items-start gap-1 p-3">
-                <div className="flex items-center justify-between w-full">
-                  <span className="font-medium">{model.name}</span>
-                </div>
-                <span className="text-xs text-muted-foreground line-clamp-2">{model.description}</span>
-                <Badge variant="secondary" className="text-xs bg-muted-foreground/30">
-                  {model.provider === "openrouter" ? "OpenRouter" : "Google"}
-                </Badge>
-              </SelectItem>
-            ))}
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-64 justify-between"
+          disabled={disabled}
+        >
+          <div className="flex flex-col items-start">
+            <span className="font-medium text-left">
+              {selectedModel?.name || "Select Model"}
+            </span>
+            {/* <span className="text-xs text-muted-foreground">
+              {selectedModel?.company}
+            </span> */}
           </div>
-        ))}
-        {!isSignedIn && (
-          <div className="p-2 text-xs text-muted-foreground border-t">Sign in to access more models</div>
-        )}
-      </SelectContent>
-    </Select>
+          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 p-0">
+        <Command shouldFilter={true}>
+          <CommandInput placeholder="Search models..." />
+          <CommandList>
+            <CommandEmpty>No models found.</CommandEmpty>
+            <CommandGroup heading="Models">
+              {availableModels.map(model => (
+                <CommandItem
+                  key={model.id}
+                  value={model.name + ' ' + model.company + ' ' + model.codeName}
+                  onSelect={() => {
+                    onModelSelect(model.id)
+                    setOpen(false)
+                  }}
+                  className="flex flex-col items-start gap-0.5 py-2"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{model.name}</span>
+                    <Badge variant="secondary" className="text-xs bg-muted-foreground/30">
+                      {model.provider}
+                    </Badge>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{model.company} &mdash; {model.codeName}</span>
+                  <span className="text-xs text-muted-foreground line-clamp-2">{model.description}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   )
 }
