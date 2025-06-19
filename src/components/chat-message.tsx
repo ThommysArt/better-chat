@@ -97,13 +97,10 @@ export function ChatMessage({
         "mr-4 bg-primary/30 text-primary-foreground px-4 py-2 rounded-lg max-w-3xl shadow",
         message.role === "user" ? "bg-primary/50" : "bg-muted/20",
         )}
-      >
-        {/* Header */}
-        
+      >        
 
         {/* Content */}
         <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
-          {/* Always render the second option (ReactMarkdown with animation) regardless of message.role */}
           {(() => {
             // Split content into lines for animation
             const lines = message.content.split(/\n/);

@@ -26,17 +26,6 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messages = useQuery(api.messages.list, chatId ? { chatId: chatId as Id<"chats"> } : "skip")
 
-  const [isStreaming, setIsStreaming] = useState(false)
-  const [streamingMessageId, setStreamingMessageId] = useState<Id<"messages"> | null>(null)
-  const [streamingContent, setStreamingContent] = useState("")
-
-  // Mutations
-  const createChat = useMutation(api.chats.create)
-  const createChatFromExisting = useMutation(api.chats.createFromExisting)
-  const deleteAfter = useMutation(api.messages.deleteAfter)
-  const deleteMessage = useMutation(api.messages.deleteMessage)
-  const updateMessage = useMutation(api.messages.update)
-
   const {
     input,
     handleInputChange,
@@ -55,6 +44,7 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
     setInput,
     setAttachments,
     currentChatId,
+    messages: sdkMessages,
   } = useChat({ chatId })
 
   const scrollToBottom = () => {
@@ -63,7 +53,14 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
 
   useEffect(() => {
     scrollToBottom()
-  }, [messages, streamingContent])
+  }, [messages, sdkMessages])
+
+  // Mutations
+  const createChat = useMutation(api.chats.create)
+  const createChatFromExisting = useMutation(api.chats.createFromExisting)
+  const deleteAfter = useMutation(api.messages.deleteAfter)
+  const deleteMessage = useMutation(api.messages.deleteMessage)
+  const updateMessage = useMutation(api.messages.update)
 
   // Handle branching from a message
   const handleBranch = async (messageId: string) => {
@@ -228,31 +225,44 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
               </div>
             ) : (
               <div className="space-y-6 p-4">
-                {messages.map((message, index) => (
-                  <ChatMessage 
-                    key={message._id} 
-                    message={message} 
-                    isStreaming={streamingMessageId === message._id}
-                    onBranch={handleBranch}
-                    onEdit={handleEdit}
-                    onRerun={handleRerun}
-                    canEdit={message.role === "user" && canEditMessage(index)}
-                  />
-                ))}
-                
-                {/* Show streaming message if active */}
-                {isStreaming && streamingMessageId && (
-                  <ChatMessage 
-                    message={{
-                      _id: streamingMessageId,
-                      role: "assistant",
-                      content: streamingContent,
-                      createdAt: Date.now(),
-                    }}
-                    isStreaming={true}
-                  />
-                )}
-                
+                {/* Render all Convex messages except the last assistant if streaming */}
+                {(() => {
+                  // Find if the SDK is streaming an assistant message
+                  const sdkAssistant = sdkMessages && sdkMessages.length > 0 && sdkMessages[sdkMessages.length - 1].role === "assistant"
+                    ? sdkMessages[sdkMessages.length - 1]
+                    : null
+                  // If streaming, exclude the last assistant message from Convex messages
+                  const convexMessages = isLoading && sdkAssistant
+                    ? messages.slice(0, -1)
+                    : messages
+                  return (
+                    <>
+                      {convexMessages.map((message, index) => (
+                        <ChatMessage 
+                          key={message._id} 
+                          message={message} 
+                          isStreaming={false}
+                          onBranch={handleBranch}
+                          onEdit={handleEdit}
+                          onRerun={handleRerun}
+                          canEdit={message.role === "user" && canEditMessage(index)}
+                        />
+                      ))}
+                      {/* Show streaming assistant message from SDK */}
+                      {isLoading && sdkAssistant && (
+                        <ChatMessage 
+                          message={{
+                            _id: "streaming-assistant",
+                            role: "assistant",
+                            content: sdkAssistant.content,
+                            createdAt: Date.now(),
+                          }}
+                          isStreaming={true}
+                        />
+                      )}
+                    </>
+                  )
+                })()}
                 <div ref={messagesEndRef} />
               </div>
             )}
@@ -261,7 +271,7 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
           {/* Input */}
           <div className="absolute bottom-0 left-0 right-0 z-20">
             <ChatInput
-              disabled={isStreaming}
+              disabled={isLoading}
               placeholder={!messages || messages.length === 0 ? "How can I help?" : "Continue the conversation..."}
               autoFocus={!chatId}
             />
