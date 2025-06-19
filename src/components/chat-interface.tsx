@@ -157,16 +157,17 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
       // Submit the form with the current chatId
       const formData = new FormData()
       formData.append("messages", JSON.stringify([{ role: "user", content: messageToRerun.content }]))
-      formData.append("chatId", currentChatId)
       formData.append("userId", user!.id)
       formData.append("modelId", messageToRerun.modelId || "google/gemini-2.0-flash")
       formData.append("useSearch", (messageToRerun.metadata?.searchUsed || false).toString())
       formData.append("useThinking", (messageToRerun.metadata?.thinkingUsed || false).toString())
 
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        body: formData,
-      })
+      const response = await fetch(`/api/chat/${currentChatId}`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      )
 
       if (!response.ok) {
         throw new Error("Failed to re-run message")

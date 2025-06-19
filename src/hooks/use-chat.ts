@@ -16,7 +16,7 @@ interface UseChatOptions {
 export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, chatId }: UseChatOptions = {}) {
   const { isSignedIn = false, user } = useUser()
   const router = useRouter()
-  const params = useParams<{ chatId: Id<"chats">|undefined }>()
+  const params = useParams<{ chatId: string }>()
   const [selectedModelId, setSelectedModelId] = useState(initialModelId)
   const [useSearch, setUseSearch] = useState(false)
   const [useThinking, setUseThinking] = useState(false)
@@ -27,7 +27,7 @@ export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, c
   const updateMessage = useMutation(api.messages.update)
 
   // Get the current chatId from params or props
-  const currentChatId = params.chatId || chatId
+  const currentChatId = params.chatId as Id<"chats"> || chatId
 
   const {
     messages,
@@ -37,10 +37,8 @@ export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, c
     isLoading,
     error,
   } = useVercelChat({
-    api: "/api/chat",
+    api: currentChatId ? `/api/chat/${currentChatId}` : undefined,
     body: {
-      chatId: currentChatId,
-      userId: user?.id,
       modelId: selectedModelId,
       useSearch,
       useThinking,
@@ -92,23 +90,7 @@ export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, c
           attachments: attachments.map((f) => f.name),
         })
 
-        // Submit to Vercel AI SDK with the current chatId
-        const formData = new FormData()
-        formData.append("messages", JSON.stringify([{ role: "user", content: input }]))
-        formData.append("chatId", chatIdToUse)
-        formData.append("userId", user.id)
-        formData.append("modelId", selectedModelId)
-        formData.append("useSearch", useSearch.toString())
-        formData.append("useThinking", useThinking.toString())
-
-        const response = await fetch("/api/chat", {
-          method: "POST",
-          body: formData,
-        })
-
-        if (!response.ok) {
-          throw new Error("Failed to send message")
-        }
+        handleVercelSubmit(e)
 
         setAttachments([])
       } else {

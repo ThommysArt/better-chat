@@ -43,7 +43,7 @@ export function ChatInput({
   placeholder = "How can I help?",
   autoFocus = false,
 }: ChatInputProps) {
-  const params = useParams<{ chatId: Id<"chats"> | undefined }>()
+  const params = useParams<{ chatId: string }>()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -63,7 +63,7 @@ export function ChatInput({
     removeAttachment,
     clearAttachments,
     isSignedIn = false,
-  } = useChat({ chatId: params.chatId })
+  } = useChat({ chatId: params.chatId as Id<"chats"> })
 
   const form = useForm<ChatFormValues>({
     resolver: zodResolver(chatFormSchema),

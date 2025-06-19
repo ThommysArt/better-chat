@@ -6,12 +6,18 @@ import { api } from '@/convex/_generated/api'
 import { NextResponse } from 'next/server'
 import type { Message } from 'ai'
 import type { NextRequest } from 'next/server'
-import { Id } from '@/convex/_generated/dataModel'
+import type { Id } from '@/convex/_generated/dataModel'
+import { auth } from '@clerk/nextjs/server'
 
-export async function POST(req: NextRequest, { params }: { params: { chatId: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ chatId: string }> }) {
   try {
-    const { messages, modelId, useSearch, useThinking, userId } = await req.json()
-    const chatId = params.chatId as Id<"chats">
+    const { messages, modelId, useSearch, useThinking } = await req.json()
+    const chatId = (await params).chatId as Id<'chats'>
+    const { userId } = await auth()
+
+    if (!userId) {
+      return NextResponse.json({ error: "User is not authenticated" }, { status: 401 })
+    }
 
     if (!messages?.length) {
       return NextResponse.json({ error: "Messages are required" }, { status: 400 })
@@ -62,4 +68,4 @@ export async function POST(req: NextRequest, { params }: { params: { chatId: str
       { status: 500 }
     )
   }
-}
+} 

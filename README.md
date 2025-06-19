@@ -5,7 +5,6 @@ A modern, extensible chat application with advanced features and a beautiful UI.
 ## Features
 
 - **Multiple LLM Access**: Seamlessly switch between different large language models (LLMs) including OpenAI, Anthropic, and more via OpenRouter integration.
-- **Resumable Streams**: Chat responses stream in real-time and can be resumed if interrupted.
 - **Attachment Support**: Send and preview file attachments directly in chat.
 - **Chat Branching**: Fork conversations at any point to explore alternate responses or scenarios.
 - **Reruns & Editing Messages**: Rerun previous prompts or edit messages to refine conversations.
