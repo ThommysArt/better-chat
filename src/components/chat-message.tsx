@@ -103,74 +103,109 @@ export function ChatMessage({
 
         {/* Content */}
         <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
-          {message.role === "user" ? (
-            <p className="whitespace-pre-wrap leading-6">{message.content}</p>
-          ) : (
-            <ReactMarkdown
-              components={{
-                p: ({ children }) => <p className="leading-6 mb-4 last:mb-0">{children}</p>,
-                h1: ({ children }) => <h1 className="text-lg font-bold leading-7 mb-3">{children}</h1>,
-                h2: ({ children }) => <h2 className="text-base font-bold leading-6 mb-2">{children}</h2>,
-                h3: ({ children }) => <h3 className="text-sm font-bold leading-5 mb-2">{children}</h3>,
-                ul: ({ children }) => <ul className="list-disc list-inside leading-6 mb-4 space-y-1">{children}</ul>,
-                ol: ({ children }) => <ol className="list-decimal list-inside leading-6 mb-4 space-y-1">{children}</ol>,
-                li: ({ children }) => <li className="leading-6">{children}</li>,
-                blockquote: ({ children }) => (
-                  <blockquote className="border-l-4 border-muted-foreground/30 pl-4 italic leading-6 mb-4">
-                    {children}
-                  </blockquote>
-                ),
-                code({ node, className, children, ref, style, ...props }) {
-                  const match = /language-(\w+)/.exec(className || "")
-                  return match ? (
-                    <div className="relative my-4">
-                      <SyntaxHighlighter
-                        style={oneDark}
-                        language={match[1]}
-                        PreTag="div"
-                        className="!mt-0 !mb-0"
-                        {...props}
+          {/* Always render the second option (ReactMarkdown with animation) regardless of message.role */}
+          {(() => {
+            // Split content into lines for animation
+            const lines = message.content.split(/\n/);
+            const lastLine = lines.pop() ?? "";
+            return (
+              <>
+                {/* Render all but the last line normally */}
+                <ReactMarkdown
+                  components={{
+                    p: ({ children }) => <p className="leading-6 mb-4 last:mb-0">{children}</p>,
+                    h1: ({ children }) => <h1 className="text-lg font-bold leading-7 mb-3">{children}</h1>,
+                    h2: ({ children }) => <h2 className="text-base font-bold leading-6 mb-2">{children}</h2>,
+                    h3: ({ children }) => <h3 className="text-sm font-bold leading-5 mb-2">{children}</h3>,
+                    ul: ({ children }) => <ul className="list-disc list-inside leading-6 mb-4 space-y-1">{children}</ul>,
+                    ol: ({ children }) => <ol className="list-decimal list-inside leading-6 mb-4 space-y-1">{children}</ol>,
+                    li: ({ children }) => <li className="leading-6">{children}</li>,
+                    blockquote: ({ children }) => (
+                      <blockquote className="border-l-4 border-muted-foreground/30 pl-4 italic leading-6 mb-4">
+                        {children}
+                      </blockquote>
+                    ),
+                    code({ node, className, children, ref, style, ...props }) {
+                      const match = /language-(\w+)/.exec(className || "");
+                      return match ? (
+                        <div className="relative my-4">
+                          <SyntaxHighlighter
+                            style={oneDark}
+                            language={match[1]}
+                            PreTag="div"
+                            className="!mt-0 !mb-0"
+                            {...props}
+                          >
+                            {String(children).replace(/\n$/, "")}
+                          </SyntaxHighlighter>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="absolute top-2 right-2 h-8 w-8 p-0"
+                            onClick={() => handleCopy(String(children))}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <code className={cn("bg-muted px-1 py-0.5 rounded text-xs font-mono", className)} {...props}>
+                          {children}
+                        </code>
+                      );
+                    },
+                    pre: ({ children }) => <pre className="leading-6 mb-4">{children}</pre>,
+                    table: ({ children }) => (
+                      <div className="overflow-x-auto mb-4">
+                        <table className="min-w-full border-collapse border border-muted-foreground/20">
+                          {children}
+                        </table>
+                      </div>
+                    ),
+                    th: ({ children }) => (
+                      <th className="border border-muted-foreground/20 px-3 py-2 text-left font-semibold leading-6">
+                        {children}
+                      </th>
+                    ),
+                    td: ({ children }) => (
+                      <td className="border border-muted-foreground/20 px-3 py-2 leading-6">
+                        {children}
+                      </td>
+                    ),
+                  }}
+                >
+                  {lines.join("\n")}
+                </ReactMarkdown>
+                {/* Animate the last line if streaming */}
+                {lastLine && (
+                  isStreaming ? (
+                    <motion.span
+                      key={lastLine}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.2 }}
+                      className="inline-block"
+                    >
+                      <ReactMarkdown
+                        components={{
+                          p: ({ children }) => <span className="leading-6">{children}</span>,
+                        }}
                       >
-                        {String(children).replace(/\n$/, "")}
-                      </SyntaxHighlighter>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="absolute top-2 right-2 h-8 w-8 p-0"
-                        onClick={() => handleCopy(String(children))}
-                      >
-                        <Copy className="h-3 w-3" />
-                      </Button>
-                    </div>
+                        {lastLine}
+                      </ReactMarkdown>
+                    </motion.span>
                   ) : (
-                    <code className={cn("bg-muted px-1 py-0.5 rounded text-xs font-mono", className)} {...props}>
-                      {children}
-                    </code>
+                    <ReactMarkdown
+                      components={{
+                        p: ({ children }) => <span className="leading-6">{children}</span>,
+                      }}
+                    >
+                      {lastLine}
+                    </ReactMarkdown>
                   )
-                },
-                pre: ({ children }) => <pre className="leading-6 mb-4">{children}</pre>,
-                table: ({ children }) => (
-                  <div className="overflow-x-auto mb-4">
-                    <table className="min-w-full border-collapse border border-muted-foreground/20">
-                      {children}
-                    </table>
-                  </div>
-                ),
-                th: ({ children }) => (
-                  <th className="border border-muted-foreground/20 px-3 py-2 text-left font-semibold leading-6">
-                    {children}
-                  </th>
-                ),
-                td: ({ children }) => (
-                  <td className="border border-muted-foreground/20 px-3 py-2 leading-6">
-                    {children}
-                  </td>
-                ),
-              }}
-            >
-              {message.content}
-            </ReactMarkdown>
-          )}
+                )}
+              </>
+            );
+          })()}
 
           <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground text-right mt-3">
             <span className="text-[0.6rem] text-right">{new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
