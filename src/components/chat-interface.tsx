@@ -249,7 +249,7 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
                         />
                       ))}
                       {/* Show streaming assistant message from SDK */}
-                      {sdkAssistant && (
+                      {isLoading && sdkAssistant && (
                         <ChatMessage 
                           message={{
                             _id: "streaming-assistant",
@@ -261,6 +261,8 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
                             metadata: {
                               searchUsed: useSearch,
                               thinkingUsed: useThinking,
+                              searchResults: [],
+                              thinkingContent: "",
                             },
                           }}
                           isStreaming={true}

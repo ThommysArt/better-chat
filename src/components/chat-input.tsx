@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label"
 import { useParams } from "next/navigation"
 import { Id } from "@/convex/_generated/dataModel"
 import { cn } from "@/lib/utils"
+import { getModelById } from "@/lib/models"
 
 const chatFormSchema = z.object({
   message: z.string().min(1, "Message cannot be empty"),
@@ -64,6 +65,9 @@ export function ChatInput({
     clearAttachments,
     isSignedIn = false,
   } = useChat({ chatId: params.chatId as Id<"chats"> })
+
+  // Get the selected model to check its capabilities
+  const selectedModel = selectedModelId ? getModelById(selectedModelId) : null
 
   const form = useForm<ChatFormValues>({
     resolver: zodResolver(chatFormSchema),
@@ -175,47 +179,53 @@ export function ChatInput({
                     <span className="sr-only">Attach file</span>
                   </Button>
 
-                  <FormField
-                    control={form.control}
-                    name="useSearch"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center gap-2">
-                        <FormControl>
-                          <Button 
-                            variant={field.value ? "default" : "outline"}
-                            onClick={() => field.onChange(!field.value)}
-                            disabled={disabled || isLoading}
-                            size="sm"
-                            className={cn(field.value && "bg-primary/20")}
-                          >
-                            <Search className="h-4 w-4" />
-                            <span className="hidden md:block text-sm">Search</span>
-                          </Button>
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                  {/* Search Button - Only show if model supports search */}
+                  {selectedModel?.features.search && (
+                    <FormField
+                      control={form.control}
+                      name="useSearch"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center gap-2">
+                          <FormControl>
+                            <Button 
+                              variant={field.value ? "default" : "outline"}
+                              onClick={() => field.onChange(!field.value)}
+                              disabled={disabled || isLoading}
+                              size="sm"
+                              className={cn(field.value && "bg-primary/20")}
+                            >
+                              <Search className="h-4 w-4" />
+                              <span className="hidden md:block text-sm">Search</span>
+                            </Button>
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  )}
 
-                  <FormField
-                    control={form.control}
-                    name="useThinking"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center gap-2">
-                        <FormControl>
-                          <Button 
-                            variant={field.value ? "default" : "outline"}
-                            onClick={() => field.onChange(!field.value)}
-                            disabled={disabled || isLoading}
-                            size="sm"
-                            className={cn(field.value && "bg-primary/20")}
-                          >
-                            <Brain className="h-4 w-4" />
-                            <span className="hidden md:block text-sm">Thinking</span>
-                          </Button>
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                  {/* Thinking Button - Only show if model supports thinking */}
+                  {selectedModel?.features.thinking && (
+                    <FormField
+                      control={form.control}
+                      name="useThinking"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center gap-2">
+                          <FormControl>
+                            <Button 
+                              variant={field.value ? "default" : "outline"}
+                              onClick={() => field.onChange(!field.value)}
+                              disabled={disabled || isLoading}
+                              size="sm"
+                              className={cn(field.value && "bg-primary/20")}
+                            >
+                              <Brain className="h-4 w-4" />
+                              <span className="hidden md:block text-sm">Thinking</span>
+                            </Button>
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2">

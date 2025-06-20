@@ -26,18 +26,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cha
     if (!messages?.length) {
       return NextResponse.json({ error: "Messages are required" }, { status: 400 })
     }
-    // Create assistant message in Convex
-    const assistantMessageId = await fetchMutation(api.messages.create, {
-      chatId,
-      userId,
-      role: "assistant",
-      content: "",
-      modelId,
-      metadata: {
-        searchUsed: useSearch,
-        thinkingUsed: useThinking,
-      },
-    })
 
     // Find the model info
     const model = MODELS.find(m => m.id === modelId) || MODELS.find(m => m.id === 'google/gemini-2.0-flash')
@@ -53,6 +41,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cha
           providerOptions = {
             google: {
               responseModalities: ['TEXT'],
+              // Enable search for Google models that support it
+              ...(useSearch && model.features.search && {
+                search: true,
+              }),
+              // Enable thinking for Google models that support it
+              ...(useThinking && model.features.thinking && {
+                thinking: true,
+              }),
             } satisfies GoogleGenerativeAIProviderOptions,
           }
           break
@@ -69,6 +65,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cha
           providerOptions = {
             anthropic: {
               apiKey: apiKeys?.anthropic || process.env.ANTHROPIC_API_KEY,
+              // Enable thinking for Anthropic models that support it
+              ...(useThinking && model.features.thinking && {
+                thinking: true,
+              }),
             },
           }
           break
@@ -77,6 +77,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cha
           providerOptions = {
             xai: {
               apiKey: apiKeys?.xai || process.env.XAI_API_KEY,
+              // Enable search for xAI models that support it
+              ...(useSearch && model.features.search && {
+                search: true,
+              }),
+              // Enable thinking for xAI models that support it
+              ...(useThinking && model.features.thinking && {
+                thinking: true,
+              }),
             },
           }
           break
@@ -96,6 +104,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cha
               anthropic: {
                 apiKey: apiKeys?.openrouter || process.env.OPENROUTER_API_KEY,
                 baseURL: "https://openrouter.ai/api/v1",
+                // Enable thinking for Anthropic models through OpenRouter
+                ...(useThinking && model.features.thinking && {
+                  thinking: true,
+                }),
               }
             }
           } else if (model.id.startsWith('xai/')) {
@@ -104,6 +116,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cha
               xai: {
                 apiKey: apiKeys?.openrouter || process.env.OPENROUTER_API_KEY,
                 baseURL: "https://openrouter.ai/api/v1",
+                // Enable search and thinking for xAI models through OpenRouter
+                ...(useSearch && model.features.search && {
+                  search: true,
+                }),
+                ...(useThinking && model.features.thinking && {
+                  thinking: true,
+                }),
               }
             }
           } else if (model.id.startsWith('google/')) {
@@ -112,6 +131,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cha
             providerOptions = {
               google: {
                 responseModalities: ['TEXT'],
+                // Enable search and thinking for Google models through OpenRouter
+                ...(useSearch && model.features.search && {
+                  search: true,
+                }),
+                ...(useThinking && model.features.thinking && {
+                  thinking: true,
+                }),
               } satisfies GoogleGenerativeAIProviderOptions,
             }
           }
@@ -127,12 +153,46 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cha
       }
     }
 
+    // Prepare messages with thinking/search instructions if needed
+    let processedMessages = (messages as Message[]).map((m) => ({
+      role: m.role,
+      content: m.content,
+    }))
+
+    // Add thinking/search instructions to the last user message if the model doesn't have built-in support
+    if ((useThinking && !model?.features.thinking) || (useSearch && !model?.features.search)) {
+      const lastUserMessage = processedMessages.findLast(m => m.role === 'user')
+      if (lastUserMessage) {
+        let enhancedContent = lastUserMessage.content
+        
+        if (useThinking && !model?.features.thinking) {
+          enhancedContent += "\n\nPlease show your thinking process step by step before providing the final answer."
+        }
+        
+        if (useSearch && !model?.features.search) {
+          enhancedContent += "\n\nPlease search for relevant information and cite your sources."
+        }
+        
+        lastUserMessage.content = enhancedContent
+      }
+    }
+
+    // Create assistant message in Convex
+    const assistantMessageId = await fetchMutation(api.messages.create, {
+      chatId,
+      userId,
+      role: "assistant",
+      content: "",
+      modelId,
+      metadata: {
+        searchUsed: useSearch,
+        thinkingUsed: useThinking,
+      },
+    })
+
     const result = streamText({
       model: model && modelFn(model.codeName, { apiKey }),
-      messages: messages.map((m: Message) => ({
-        role: m.role,
-        content: m.content,
-      })),
+      messages: processedMessages,
       providerOptions,
       async onFinish({ response }) {
         // Update the assistant message with the final content
@@ -140,9 +200,41 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cha
         const contentString = Array.isArray(content) 
           ? content.map(part => part.type === 'text' ? part.text : '').join('')
           : String(content)
+        
+        // Extract thinking and search data from the response if not handled by the model
+        let finalContent = contentString
+        let thinkingContent: string | undefined
+        let searchResults: string[] | undefined
+        
+        if (useThinking && !model?.features.thinking) {
+          // Extract thinking content (everything before the final answer)
+          const thinkingMatch = contentString.match(/(?:thinking|reasoning|analysis|process)[:\s]*([\s\S]*?)(?=\n\n(?:final|answer|conclusion|therefore)|$)/i)
+          if (thinkingMatch) {
+            thinkingContent = thinkingMatch[1].trim()
+            // Remove thinking content from final response
+            finalContent = contentString.replace(thinkingMatch[0], '').trim()
+          }
+        }
+        
+        if (useSearch && !model?.features.search) {
+          // Extract search results (look for citations, sources, or search results)
+          const searchMatches = contentString.match(/(?:source|reference|citation|search result)[:\s]*([^\n]+)/gi)
+          if (searchMatches && searchMatches.length > 0) {
+            searchResults = searchMatches.map(match => 
+              match.replace(/(?:source|reference|citation|search result)[:\s]*/i, '').trim()
+            )
+          }
+        }
+        
         await fetchMutation(api.messages.update, {
           messageId: assistantMessageId,
-          content: contentString,
+          content: finalContent,
+          metadata: {
+            searchUsed: useSearch,
+            thinkingUsed: useThinking,
+            searchResults,
+            thinkingContent,
+          },
         })
       },
     })

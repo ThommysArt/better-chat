@@ -1,6 +1,6 @@
 import { useChat as useVercelChat } from "@ai-sdk/react"
-import { useState, useCallback, useMemo } from "react"
-import { ModelProvider } from "@/lib/models"
+import { useState, useCallback, useMemo, useEffect } from "react"
+import { ModelProvider, getModelById } from "@/lib/models"
 import { useUser } from "@clerk/nextjs"
 import { useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
@@ -36,6 +36,19 @@ export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, c
 
   // Get the current chatId from params or props
   const currentChatId = params.chatId as Id<"chats"> || chatId
+
+  // Reset search and thinking flags when model changes to one that doesn't support them
+  useEffect(() => {
+    const model = getModelById(selectedModelId)
+    if (model) {
+      if (!model.features.search && useSearch) {
+        setUseSearch(false)
+      }
+      if (!model.features.thinking && useThinking) {
+        setUseThinking(false)
+      }
+    }
+  }, [selectedModelId, useSearch, useThinking])
 
   const {
     messages: sdkMessages,

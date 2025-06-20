@@ -21,6 +21,9 @@ export const create = mutation({
       v.object({
         searchUsed: v.boolean(),
         thinkingUsed: v.boolean(),
+        searchResults: v.optional(v.array(v.string())),
+        thinkingContent: v.optional(v.string()),
+        tokensUsed: v.optional(v.number()),
       }),
     ),
   },
@@ -67,11 +70,26 @@ export const update = mutation({
   args: {
     messageId: v.id("messages"),
     content: v.string(),
+    metadata: v.optional(
+      v.object({
+        searchUsed: v.boolean(),
+        thinkingUsed: v.boolean(),
+        searchResults: v.optional(v.array(v.string())),
+        thinkingContent: v.optional(v.string()),
+        tokensUsed: v.optional(v.number()),
+      }),
+    ),
   },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.messageId, {
+    const updateData: any = {
       content: args.content,
-    })
+    }
+    
+    if (args.metadata) {
+      updateData.metadata = args.metadata
+    }
+    
+    await ctx.db.patch(args.messageId, updateData)
   },
 })
 

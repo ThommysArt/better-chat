@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Copy, Check, User, Bot, Search, Lightbulb, GitBranch, Edit3, RotateCcw, MoreHorizontal } from "lucide-react"
+import { Copy, Check, User, Bot, Search, Lightbulb, GitBranch, Edit3, RotateCcw, MoreHorizontal, ChevronDown, ChevronRight } from "lucide-react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { getModelById } from "@/lib/models"
@@ -17,6 +17,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 
 interface Message {
   _id: string
@@ -27,6 +32,8 @@ interface Message {
   metadata?: {
     searchUsed?: boolean
     thinkingUsed?: boolean
+    searchResults?: string[]
+    thinkingContent?: string
     tokensUsed?: number
   }
   createdAt: number
@@ -50,6 +57,8 @@ export function ChatMessage({
   canEdit = false 
 }: ChatMessageProps) {
   const [copied, setCopied] = useState(false)
+  const [showThinking, setShowThinking] = useState(false)
+  const [showSearch, setShowSearch] = useState(false)
   const model = message.modelId ? getModelById(message.modelId) : null
 
   const copyToClipboard = async () => {
@@ -88,7 +97,7 @@ export function ChatMessage({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        "group flex flex-col w-full max-w-4xl mx-auto",
+        "group flex flex-col w-full max-w-[54rem] mx-auto",
         message.role === "user" ? "items-end" : "items-start",
       )}
     >
@@ -203,6 +212,62 @@ export function ChatMessage({
               </>
             );
           })()}
+
+          {/* Thinking Section */}
+          {message.metadata?.thinkingUsed && message.metadata?.thinkingContent && (
+            <div className="mt-4 border-t border-muted-foreground/20 pt-4">
+              <Collapsible open={showThinking} onOpenChange={setShowThinking}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-auto p-2 gap-2 text-xs">
+                    <Lightbulb className="h-3 w-3" />
+                    <span>Thinking Process</span>
+                    {showThinking ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2">
+                  <div className="bg-muted/30 rounded-lg p-3 text-xs">
+                    <ReactMarkdown
+                      components={{
+                        p: ({ children }) => <p className="leading-5 mb-2 last:mb-0">{children}</p>,
+                        code: ({ children }) => (
+                          <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">
+                            {children}
+                          </code>
+                        ),
+                      }}
+                    >
+                      {message.metadata.thinkingContent}
+                    </ReactMarkdown>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
+          )}
+
+          {/* Search Results Section */}
+          {message.metadata?.searchUsed && message.metadata?.searchResults && message.metadata.searchResults.length > 0 && (
+            <div className="mt-4 border-t border-muted-foreground/20 pt-4">
+              <Collapsible open={showSearch} onOpenChange={setShowSearch}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-auto p-2 gap-2 text-xs">
+                    <Search className="h-3 w-3" />
+                    <span>Search Results ({message.metadata.searchResults.length})</span>
+                    {showSearch ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2">
+                  <div className="space-y-2">
+                    {message.metadata.searchResults.map((result, index) => (
+                      <div key={index} className="bg-muted/30 rounded-lg p-3 text-xs">
+                        <div className="font-medium mb-1">Result {index + 1}</div>
+                        <div className="text-muted-foreground">{result}</div>
+                      </div>
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
+          )}
 
           <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground text-right mt-3">
             <span className="text-[0.6rem] text-right">{new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}</span>

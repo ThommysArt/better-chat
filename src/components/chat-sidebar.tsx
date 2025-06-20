@@ -199,7 +199,7 @@ export function ChatSidebar({ currentChatId, onNewChat, userId }: ChatSidebarPro
                 <SidebarMenuButton
                   asChild
                   isActive={currentChatId === chat._id}
-                  className="group flex items-center gap-2 p-5 w-full cursor-pointer"
+                  className="relative group flex items-center gap-2 p-5 w-full cursor-pointer"
                   onClick={() => router.push(`/chat/${chat._id}`)}
                 >
                   <div className="flex items-center gap-2 w-full">
@@ -219,7 +219,7 @@ export function ChatSidebar({ currentChatId, onNewChat, userId }: ChatSidebarPro
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute right-2 top-2 z-10 h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <MoreHorizontal className="h-4 w-4" />

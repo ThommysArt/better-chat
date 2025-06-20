@@ -22,6 +22,9 @@ export default defineSchema({
       v.object({
         searchUsed: v.boolean(),
         thinkingUsed: v.boolean(),
+        searchResults: v.optional(v.array(v.string())),
+        thinkingContent: v.optional(v.string()),
+        tokensUsed: v.optional(v.number()),
       })
     ),
     attachments: v.optional(
