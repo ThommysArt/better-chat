@@ -30,6 +30,13 @@ export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, c
   const [attachments, setAttachments] = useState<File[]>([])
   const [streamingContent, setStreamingContent] = useState("")
   const [streamingStatus, setStreamingStatus] = useState<'thinking' | 'searching' | 'generating' | 'complete'>('generating')
+  const [apiKeys, setApiKeys] = useState({
+    openrouter: undefined as string | undefined,
+    openai: undefined as string | undefined,
+    anthropic: undefined as string | undefined,
+    xai: undefined as string | undefined,
+    google: undefined as string | undefined,
+  });
 
   const createChat = useMutation(api.chats.create)
   const createMessage = useMutation(api.messages.create)
@@ -51,6 +58,18 @@ export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, c
     }
   }, [selectedModelId, useSearch, useThinking])
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setApiKeys({
+        openrouter: localStorage.getItem("openrouter-api-key") || undefined,
+        openai: localStorage.getItem("openai-api-key") || undefined,
+        anthropic: localStorage.getItem("anthropic-api-key") || undefined,
+        xai: localStorage.getItem("xai-api-key") || undefined,
+        google: localStorage.getItem("google-api-key") || undefined,
+      });
+    }
+  }, []);
+
   const {
     messages: sdkMessages,
     input,
@@ -65,13 +84,7 @@ export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, c
       useSearch,
       useThinking,
       attachments: attachments.map(f => ({ name: f.name, type: f.type })),
-      apiKeys: {
-        openrouter: localStorage.getItem("openrouter-api-key") || undefined,
-        openai: localStorage.getItem("openai-api-key") || undefined,
-        anthropic: localStorage.getItem("anthropic-api-key") || undefined,
-        xai: localStorage.getItem("xai-api-key") || undefined,
-        google: localStorage.getItem("google-api-key") || undefined,
-      },
+      apiKeys: apiKeys,
     },
     onResponse: (response) => {
       const reader = response.body?.getReader()
