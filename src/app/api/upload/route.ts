@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from "next/server"
 import { ConvexHttpClient } from "convex/browser"
 import { api } from "@/convex/_generated/api"
+import { auth } from '@clerk/nextjs/server'
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!)
 
 export async function POST(req: NextRequest) {
   try {
+    const { userId } = await auth()
+
+    if (!userId) {
+      return NextResponse.json({ error: "User is not authenticated" }, { status: 401 })
+    }
+
     const formData = await req.formData()
     const file = formData.get("file") as File
     if (!file) {

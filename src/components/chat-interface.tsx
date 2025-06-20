@@ -15,6 +15,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { ThemeSwitcher } from "@/components/theme-switcher"
 import { useChat } from "@/hooks/use-chat"
 import { toast } from "sonner"
+import { getModelById } from "@/lib/models"
 
 interface ChatInterfaceProps {
   chatId?: Id<"chats">
@@ -45,7 +46,11 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
     setAttachments,
     currentChatId,
     messages: sdkMessages,
+    streamingContent,
+    streamingStatus,
   } = useChat({ chatId })
+
+  const selectedModel = selectedModelId ? getModelById(selectedModelId) : null
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -266,6 +271,12 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
                             },
                           }}
                           isStreaming={true}
+                          streamingContent={streamingContent}
+                          streamingStatus={
+                            useThinking && selectedModel?.features.thinking ? 'thinking' :
+                            useSearch && selectedModel?.features.search ? 'searching' :
+                            'generating'
+                          }
                         />
                       )}
                     </>

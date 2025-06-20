@@ -226,12 +226,18 @@ export function ChatSidebar({ currentChatId, onNewChat, userId }: ChatSidebarPro
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => startEditing(chat)}>
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation()
+                          startEditing(chat)
+                        }}>
                           <Edit3 className="h-4 w-4 mr-2" />
                           Rename
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => openDeleteDialog(chat)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            openDeleteDialog(chat)
+                          }}
                           className="text-destructive focus:text-destructive"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />

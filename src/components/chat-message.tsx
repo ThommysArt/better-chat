@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Copy, Check, User, Bot, Search, Lightbulb, GitBranch, Edit3, RotateCcw, MoreHorizontal, ChevronDown, ChevronRight } from "lucide-react"
+import { Copy, Check, User, Bot, Search, Lightbulb, GitBranch, Edit3, RotateCcw, MoreHorizontal, ChevronDown, ChevronRight, Loader2 } from "lucide-react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { getModelById } from "@/lib/models"
@@ -42,6 +42,8 @@ interface Message {
 interface ChatMessageProps {
   message: Message
   isStreaming?: boolean
+  streamingContent?: string
+  streamingStatus?: 'thinking' | 'searching' | 'generating' | 'complete'
   onBranch?: (messageId: string) => void
   onEdit?: (message: Message) => void
   onRerun?: (messageId: string) => void
@@ -51,6 +53,8 @@ interface ChatMessageProps {
 export function ChatMessage({ 
   message, 
   isStreaming = false, 
+  streamingContent = "",
+  streamingStatus,
   onBranch, 
   onEdit, 
   onRerun,
@@ -91,6 +95,31 @@ export function ChatMessage({
     }
   }
 
+  // Determine what content to display
+  const displayContent = isStreaming && streamingContent ? streamingContent : message.content
+
+  // Status indicator component
+  const StatusIndicator = () => {
+    if (!isStreaming || !streamingStatus) return null
+
+    const statusConfig = {
+      thinking: { icon: Lightbulb, text: "Thinking...", color: "text-yellow-500" },
+      searching: { icon: Search, text: "Searching...", color: "text-blue-500" },
+      generating: { icon: Loader2, text: "Generating...", color: "text-green-500" },
+      complete: { icon: Check, text: "Complete", color: "text-green-500" }
+    }
+
+    const config = statusConfig[streamingStatus]
+    if (!config) return null
+
+    return (
+      <div className={cn("flex items-center gap-2 text-xs text-muted-foreground mb-2", config.color)}>
+        <config.icon className="h-3 w-3 animate-spin" />
+        <span>{config.text}</span>
+      </div>
+    )
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -108,11 +137,14 @@ export function ChatMessage({
         )}
       >        
 
+        {/* Status Indicator */}
+        {message.role === "assistant" && <StatusIndicator />}
+
         {/* Content */}
         <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
           {(() => {
             // Split content into lines for animation
-            const lines = message.content.split(/\n/);
+            const lines = displayContent.split(/\n/);
             const lastLine = lines.pop() ?? "";
             return (
               <>

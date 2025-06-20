@@ -29,6 +29,7 @@ export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, c
   const [useThinking, setUseThinking] = useState(false)
   const [attachments, setAttachments] = useState<File[]>([])
   const [streamingContent, setStreamingContent] = useState("")
+  const [streamingStatus, setStreamingStatus] = useState<'thinking' | 'searching' | 'generating' | 'complete'>('generating')
 
   const createChat = useMutation(api.chats.create)
   const createMessage = useMutation(api.messages.create)
@@ -86,6 +87,9 @@ export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, c
           if (json.content) {
             setStreamingContent(json.content)
           }
+          if (json.status) {
+            setStreamingStatus(json.status)
+          }
         } catch (e) {
           // Ignore invalid JSON chunks
         }
@@ -95,6 +99,7 @@ export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, c
     },
     onFinish: async (message) => {
       setStreamingContent("")
+      setStreamingStatus('complete')
       if (currentChatId && user && message.content) {
         // Update the assistant message in Convex with the final content
         await updateMessage({
@@ -234,5 +239,7 @@ export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, c
     },
     setAttachments,
     currentChatId,
+    streamingContent,
+    streamingStatus,
   }
 } 

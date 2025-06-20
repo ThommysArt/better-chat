@@ -7,11 +7,17 @@ import { NextResponse } from 'next/server'
 import type { Message } from 'ai'
 import type { NextRequest } from 'next/server'
 import { Id } from '@/convex/_generated/dataModel'
+import { auth } from '@clerk/nextjs/server'
 
 export async function POST(req: NextRequest, { params }: { params: { chatId: string } }) {
   try {
     const { messages, modelId, useSearch, useThinking, userId } = await req.json()
     const chatId = params.chatId as Id<"chats">
+    const { userId: authUserId } = await auth()
+
+    if (!authUserId) {
+      return NextResponse.json({ error: "User is not authenticated" }, { status: 401 })
+    }
 
     if (!messages?.length) {
       return NextResponse.json({ error: "Messages are required" }, { status: 400 })
@@ -19,7 +25,7 @@ export async function POST(req: NextRequest, { params }: { params: { chatId: str
     // Create assistant message in Convex
     const assistantMessageId = await fetchMutation(api.messages.create, {
       chatId,
-      userId,
+      userId: authUserId,
       role: "assistant",
       content: "",
       modelId,
