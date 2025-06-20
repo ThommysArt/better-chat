@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Copy, Check, User, Bot, Search, Lightbulb, GitBranch, Edit3, RotateCcw, MoreHorizontal, ChevronDown, ChevronRight, Loader2 } from "lucide-react"
+import { Copy, Check, User, Bot, Search, Lightbulb, GitBranch, Edit3, RotateCcw, MoreHorizontal, ChevronDown, ChevronRight } from "lucide-react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { getModelById } from "@/lib/models"
@@ -22,12 +22,14 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import { Spinner } from "@/components/icons/spinner"
 
 interface Message {
   _id: string
   role: string
   content: string
   modelId?: string
+  status?: 'thinking' | 'generating' | 'searching' | 'sent'
   attachments?: { name: string; type: string; storageId: string }[]
   metadata?: {
     searchUsed?: boolean
@@ -100,21 +102,23 @@ export function ChatMessage({
 
   // Status indicator component
   const StatusIndicator = () => {
-    if (!isStreaming || !streamingStatus) return null
+    // Use message status from database if available, otherwise fall back to streaming status
+    const currentStatus = message.status || streamingStatus
+    if (!currentStatus || currentStatus === 'sent' || currentStatus === 'complete') return null
 
     const statusConfig = {
-      thinking: { icon: Lightbulb, text: "Thinking...", color: "text-yellow-500" },
-      searching: { icon: Search, text: "Searching...", color: "text-blue-500" },
-      generating: { icon: Loader2, text: "Generating...", color: "text-green-500" },
-      complete: { icon: Check, text: "Complete", color: "text-green-500" }
+      thinking: { icon: Lightbulb, text: "Thinking...", color: "text-yellow-500", animate: false },
+      searching: { icon: Search, text: "Searching...", color: "text-blue-500", animate: false },
+      generating: { icon: Spinner, text: "Generating...", color: "text-green-500", animate: true },
+      complete: { icon: Check, text: "Complete", color: "text-green-500", animate: false }
     }
 
-    const config = statusConfig[streamingStatus]
+    const config = statusConfig[currentStatus]
     if (!config) return null
 
     return (
       <div className={cn("flex items-center gap-2 text-xs text-muted-foreground mb-2", config.color)}>
-        <config.icon className="h-3 w-3 animate-spin" />
+        <config.icon className={cn("h-3 w-3", config.animate && "animate-spin")} />
         <span>{config.text}</span>
       </div>
     )

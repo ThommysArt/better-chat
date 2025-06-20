@@ -89,6 +89,17 @@ export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, c
           }
           if (json.status) {
             setStreamingStatus(json.status)
+            // Update the message status in the database if we have a current chat
+            if (currentChatId && sdkMessages && sdkMessages.length > 0) {
+              const lastMessage = sdkMessages[sdkMessages.length - 1]
+              if (lastMessage.role === "assistant") {
+                updateMessage({
+                  messageId: lastMessage.id as Id<"messages">,
+                  content: lastMessage.content,
+                  status: json.status,
+                })
+              }
+            }
           }
         } catch (e) {
           // Ignore invalid JSON chunks
@@ -105,6 +116,7 @@ export function useChat({ initialModelId = "google/gemini-2.0-flash", onError, c
         await updateMessage({
           messageId: sdkMessages[sdkMessages.length - 1].id as Id<"messages">,
           content: message.content,
+          status: "sent",
         })
       }
     },

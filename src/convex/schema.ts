@@ -18,6 +18,7 @@ export default defineSchema({
     role: v.string(),
     content: v.string(),
     modelId: v.optional(v.string()),
+    status: v.optional(v.union(v.literal("thinking"), v.literal("generating"), v.literal("searching"), v.literal("sent"))),
     metadata: v.optional(
       v.object({
         searchUsed: v.boolean(),

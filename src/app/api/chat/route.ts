@@ -29,6 +29,7 @@ export async function POST(req: NextRequest, { params }: { params: { chatId: str
       role: "assistant",
       content: "",
       modelId,
+      status: "generating",
       metadata: {
         searchUsed: useSearch,
         thinkingUsed: useThinking,
@@ -56,6 +57,7 @@ export async function POST(req: NextRequest, { params }: { params: { chatId: str
         await fetchMutation(api.messages.update, {
           messageId: assistantMessageId,
           content: contentString,
+          status: "sent",
         })
       },
     })

@@ -184,6 +184,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cha
       role: "assistant",
       content: "",
       modelId,
+      status: useThinking && model?.features.thinking ? "thinking" : 
+              useSearch && model?.features.search ? "searching" : "generating",
       metadata: {
         searchUsed: useSearch,
         thinkingUsed: useThinking,
@@ -229,6 +231,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cha
         await fetchMutation(api.messages.update, {
           messageId: assistantMessageId,
           content: finalContent,
+          status: "sent",
           metadata: {
             searchUsed: useSearch,
             thinkingUsed: useThinking,

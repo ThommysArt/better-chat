@@ -66,6 +66,7 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
   const deleteAfter = useMutation(api.messages.deleteAfter)
   const deleteMessage = useMutation(api.messages.deleteMessage)
   const updateMessage = useMutation(api.messages.update)
+  const createMessage = useMutation(api.messages.create)
 
   // Handle branching from a message
   const handleBranch = async (messageId: string) => {
@@ -130,55 +131,47 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
     if (!isSignedIn || !currentChatId) return
 
     try {
+      // Find the message to re-run
+      const messageToRerun = messages?.find(m => m._id === messageId)
+      if (!messageToRerun) return
+
       // Delete all messages after this one
       await deleteAfter({
         chatId: currentChatId,
         messageId: messageId as Id<"messages">,
       })
 
-      // Find the message to re-run
-      const messageToRerun = messages?.find(m => m._id === messageId)
-      if (!messageToRerun) return
-
-      // Set the form values
+      // Set the form values to the original user message
       setInput(messageToRerun.content)
       setSelectedModelId(messageToRerun.modelId || "google/gemini-2.0-flash")
       
-      if (messageToRerun.attachments && messageToRerun.attachments.length > 0) {
-        const attachmentFiles = messageToRerun.attachments.map((attachment: { name: string; type: string; storageId: string }) => 
-          new File([""], attachment.name, { type: attachment.type || "text/plain" })
-        )
-        setAttachments(attachmentFiles)
-      }
-
       if (messageToRerun.metadata) {
         setUseSearch(messageToRerun.metadata.searchUsed || false)
         setUseThinking(messageToRerun.metadata.thinkingUsed || false)
       }
 
-      // Submit the form with the current chatId
-      const formData = new FormData()
-      formData.append("messages", JSON.stringify([{ role: "user", content: messageToRerun.content }]))
-      formData.append("userId", user!.id)
-      formData.append("modelId", messageToRerun.modelId || "google/gemini-2.0-flash")
-      formData.append("useSearch", (messageToRerun.metadata?.searchUsed || false).toString())
-      formData.append("useThinking", (messageToRerun.metadata?.thinkingUsed || false).toString())
+      // Create a new assistant message with initial status
+      await createMessage({
+        chatId: currentChatId,
+        userId: user!.id,
+        role: "assistant",
+        content: "",
+        modelId: messageToRerun.modelId || "google/gemini-2.0-flash",
+        status: "generating",
+        metadata: {
+          searchUsed: messageToRerun.metadata?.searchUsed || false,
+          thinkingUsed: messageToRerun.metadata?.thinkingUsed || false,
+        },
+      })
 
-      const response = await fetch(`/api/chat/${currentChatId}`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      )
+      // Trigger the chat submission
+      const formEvent = new Event("submit") as any
+      handleSubmit(formEvent)
 
-      if (!response.ok) {
-        throw new Error("Failed to re-run message")
-      }
-
-      toast.success("Message re-running")
+      toast.success("Regenerating response...")
     } catch (error) {
       console.error("Error re-running message:", error)
-      toast.error("Failed to re-run message")
+      toast.error("Failed to regenerate response")
     }
   }
 
@@ -246,7 +239,7 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
                         <ChatMessage 
                           key={message._id} 
                           message={message} 
-                          isStreaming={false}
+                          isStreaming={message.status && message.status !== 'sent'}
                           onBranch={handleBranch}
                           onEdit={handleEdit}
                           onRerun={handleRerun}
@@ -262,6 +255,7 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
                             content: sdkAssistant.content,
                             createdAt: Date.now(),
                             modelId: selectedModelId,
+                            status: "generating",
                             attachments: [],
                             metadata: {
                               searchUsed: useSearch,
@@ -272,11 +266,6 @@ export function ChatInterface({ chatId }: ChatInterfaceProps) {
                           }}
                           isStreaming={true}
                           streamingContent={streamingContent}
-                          streamingStatus={
-                            useThinking && selectedModel?.features.thinking ? 'thinking' :
-                            useSearch && selectedModel?.features.search ? 'searching' :
-                            'generating'
-                          }
                         />
                       )}
                     </>

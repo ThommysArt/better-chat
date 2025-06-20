@@ -8,6 +8,7 @@ export const create = mutation({
     role: v.string(),
     content: v.string(),
     modelId: v.optional(v.string()),
+    status: v.optional(v.union(v.literal("thinking"), v.literal("generating"), v.literal("searching"), v.literal("sent"))),
     attachments: v.optional(
       v.array(
         v.object({
@@ -34,6 +35,7 @@ export const create = mutation({
       role: args.role,
       content: args.content,
       modelId: args.modelId,
+      status: args.status || "sent",
       attachments: args.attachments,
       metadata: args.metadata,
       createdAt: Date.now(),
@@ -70,6 +72,7 @@ export const update = mutation({
   args: {
     messageId: v.id("messages"),
     content: v.string(),
+    status: v.optional(v.union(v.literal("thinking"), v.literal("generating"), v.literal("searching"), v.literal("sent"))),
     metadata: v.optional(
       v.object({
         searchUsed: v.boolean(),
@@ -83,6 +86,10 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const updateData: any = {
       content: args.content,
+    }
+    
+    if (args.status) {
+      updateData.status = args.status
     }
     
     if (args.metadata) {
