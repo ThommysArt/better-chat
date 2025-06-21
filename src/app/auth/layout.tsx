@@ -7,7 +7,7 @@ import React from 'react'
 const AuthLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className='relative h-screen w-screen'>
-        <div className="flex items-center h-[90vh] w-[80vw] mx-auto pt-[10vh]">
+        <div className="flex items-center h-[90vh] w-screen md:w-[80vw] mx-auto pt-[10vh]">
           <div className='hidden md:block w-full h-full border'>
             <div className="flex flex-col h-full justify-center px-8 py-6 space-y-6">
               {/* ChatGPT message (left) */}
